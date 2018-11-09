@@ -318,9 +318,9 @@ static int arc4_seed_urandom_helper_(const char *fname)
 	size_t n;
 
 	fd = open_read(fname);
-	io_closeonexec(fd);
 	if (fd<0)
 		return -1;
+	io_closeonexec(fd);
 	n = read_all(fd, buf, sizeof(buf));
 	close(fd);
 	if (n != sizeof(buf))

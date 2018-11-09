@@ -268,25 +268,27 @@ static int  dashboard_page_finish (http_context *http)
 				continue;
 			if (!any_report) {
 				any_report = 1;
-		    	PRINT(S("<form action='"), S(PREFIX), S("/mod' method='post'>"
-		    	           "<input type='hidden' name='redirect' value='"), S(PREFIX), S("/dashboard'>"
+				PRINT(S("<form action='"), S(PREFIX), S("/mod' method='post'>"
+				           "<input type='hidden' name='redirect' value='"), S(PREFIX), S("/dashboard'>"
 				           "<p>"
 				           "<table>"
 				             "<tr><th></th><th>Datum</th><th>Brett</th><th>Beitrag</th><th>Vorschau</th><th>Grund</th><th>Kommentar</th></tr>"));
-		    }
+			}
 			struct thread *thread = find_thread_by_id(report_thread_id(report));
 			struct post *post = find_post_by_id(report_post_id(report));
 			PRINT(S("<tr>"
 			          "<td><input type='checkbox' name='report' value='"), U64(report_id(report)), S("'></td>"
 			          "<td>"), HTTP_DATE(report_timestamp(report)), S("</td>"
 			          "<td>/"), board?E(board_name(board)):S(""), S("/</td>"
-			          "<td><a href='"));
-			print_post_url2(http, board, thread, post, 1);
-			PRINT(S(       "'>&gt;&gt;"), U64(report_post_id(report)), S("</a></td><td>"));
-			if (post)
+			          "<td>"));
+			if (post) {
+				PRINT(S("<a href='"));
+				print_post_url2(http, board, thread, post, 1);
+				PRINT(S(       "'>&gt;&gt;"), U64(report_post_id(report)), S("</a></td><td>"));
 				print_post(http, post, 1, WRITE_POST_IP | WRITE_POST_USER_AGENT);
-			else
-				PRINT(S("<i>gelöscht</i>"));
+			} else {
+				PRINT(S("</td><td><i>gelöscht</i>"));
+			}
 
 			PRINT(S(  "</td>"
 			          "<td>"));

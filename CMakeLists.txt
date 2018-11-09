@@ -6,11 +6,13 @@ set(BUILD_ROOT "${PROJECT_SOURCE_DIR}/build")
 
 ExternalProject_Add(
 	dietlibc
-	CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
-	CVS_MODULE "dietlibc"
+	#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
+	#CVS_MODULE "dietlibc"
+	URL "https://www.fefe.de/dietlibc/dietlibc-0.34.tar.xz"
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/dietlibc"
 	PREFIX "${PROJECT_SOURCE_DIR}/.prefix/dietlibc"
 	BUILD_IN_SOURCE 1
+	BUILD_ALWAYS 1
 	CONFIGURE_COMMAND ""
 	UPDATE_COMMAND ""
 	TEST_COMMAND ""
@@ -23,12 +25,13 @@ ExternalProject_Add(
 
 ExternalProject_Add(
 	libowfat
-	CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
-	CVS_MODULE "libowfat"
-	#URL "https://www.fefe.de/libowfat/libowfat-0.31.tar.xz"
+	#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
+	#CVS_MODULE "libowfat"
+	URL "https://www.fefe.de/libowfat/libowfat-0.32.tar.xz"
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/libowfat"
 	PREFIX "${PROJECT_SOURCE_DIR}/.prefix/libowfat"
 	BUILD_IN_SOURCE 1
+	BUILD_ALWAYS 1
 	CONFIGURE_COMMAND ""
 	UPDATE_COMMAND ""
 	TEST_COMMAND ""

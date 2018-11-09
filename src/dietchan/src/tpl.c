@@ -335,6 +335,7 @@ void write_page_css(http_context *http)
 	          "display: inline-block;"
 	          "white-space: pre-wrap;"
 	          "max-width: 100%;"
+		  "margin: 0;"
 	        "}"
 	        "div.files {"
 	          "margin-bottom: .25em;"
