@@ -34,12 +34,14 @@ void normalize_ip_range(struct ip_range *range)
 
 	unsigned char mask[16];
 	int i=0;
-	for (; i<range->range/8; )
-		mask[i++] = 0xFF;
-	if (i<n)
-		mask[i++] = 0xFF << (8 - (range->range-i*8));
-	for (; i<n; )
-		mask[i++] = 0x00;
+	for (; i<range->range/8; ++i)
+		mask[i] = 0xFF;
+	if (i<n) {
+		mask[i] = 0xFF << (8 - (range->range-i*8));
+		++i;
+	}
+	for (; i<n; ++i)
+		mask[i] = 0x00;
 
 	for (i=0; i<n; ++i)
 		range->ip.bytes[i] &= mask[i];
@@ -56,7 +58,7 @@ const struct ip_range LOCAL_RANGES[] = {
 	{0}
 };
 
-int is_external_ip(struct ip *ip)
+int is_external_ip(const struct ip *ip)
 {
 	if (ip->version != IP_V4 &&
 	    ip->version != IP_V6)
@@ -72,7 +74,7 @@ int is_external_ip(struct ip *ip)
 	return 1;
 }
 
-int ip_eq(struct ip *a, struct ip *b)
+int ip_eq(const struct ip *a, const struct ip *b)
 {
 	return (a->version == b->version) &&
 	       byte_equal(a->bytes, (a->version==IP_V6)?16:4, b->bytes);
@@ -122,7 +124,7 @@ size_t scan_ip(const char *src, struct ip *ip)
 	return consumed;
 }
 
-size_t fmt_ip(char *dest, struct ip *ip)
+size_t fmt_ip(char *dest, const struct ip *ip)
 {
 	switch (ip->version) {
 	case IP_V4: return fmt_ip4(dest, &ip->bytes[0]);

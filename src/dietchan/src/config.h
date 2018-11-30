@@ -19,6 +19,8 @@
 #define FLOOD_LIMIT                      10
 // Number of seconds to wait between creating two reports (seconds)
 #define REPORT_FLOOD_LIMIT               10
+// Ignore local IP addresses like 127.0.0.1 for flood limits. Useful when using a reverse-proxy.
+#define FLOOD_IGNORE_LOCAL_IP             1
 
 // -- Bans --
 

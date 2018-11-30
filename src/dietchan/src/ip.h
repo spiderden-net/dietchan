@@ -25,10 +25,10 @@ int ip_in_range(const struct ip_range *range, const struct ip *ip);
 void normalize_ip_range(struct ip_range *range);
 int ip_range_eq(void *a, void *b, void *extra);
 uint64 ip_range_hash(void *range, void *extra);
-int is_external_ip(struct ip *ip);
-int ip_eq(struct ip *a, struct ip *b);
+int is_external_ip(const struct ip *ip);
+int ip_eq(const struct ip *a, const struct ip *b);
 
 size_t scan_ip(const char *src, struct ip *ip);
-size_t fmt_ip(char *dest, struct ip *ip);
+size_t fmt_ip(char *dest, const struct ip *ip);
 
 #endif // IP_H

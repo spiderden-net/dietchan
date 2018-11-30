@@ -659,22 +659,15 @@ static int post_page_finish (http_context *http)
 
 	purge_expired_bans();
 
-	struct ban *ban = ban_new();
-	uint64 ban_counter = master_ban_counter(master)+1;
-	master_set_ban_counter(master, ban_counter);
-	ban_set_id(ban, ban_counter);
-	ban_set_enabled(ban, 1);
-	ban_set_type(ban, BAN_FLOOD);
-	ban_set_target(ban, BAN_TARGET_POST);
-	ban_set_timestamp(ban, timestamp);
-	ban_set_duration(ban, FLOOD_LIMIT);
-	struct ip_range range;
-	range.ip = page->ip;
-	range.range = 32; // FIXME: support IPV6
-	ban_set_range(ban, range);
-	ban_set_post(ban, post_id(post));
-
-	insert_ban(ban);
+	if (is_external_ip(&page->ip) || !FLOOD_IGNORE_LOCAL_IP)
+		create_global_ban(&page->ip, BAN_FLOOD, BAN_TARGET_POST, timestamp, FLOOD_LIMIT, post_id(post));
+	for (size_t i=0; i<array_length(&page->x_forwarded_for, sizeof(struct ip)); ++i) {
+		struct ip *ip = array_get(&page->x_forwarded_for, sizeof(struct ip), i);
+		if (is_external_ip(&page->ip) || !FLOOD_IGNORE_LOCAL_IP)
+			create_global_ban(ip, BAN_FLOOD, BAN_TARGET_POST, timestamp, FLOOD_LIMIT, post_id(post));
+	}
+	if (is_external_ip(&page->x_real_ip) || !FLOOD_IGNORE_LOCAL_IP)
+		create_global_ban(&page->x_real_ip, BAN_FLOOD, BAN_TARGET_POST, timestamp, FLOOD_LIMIT, post_id(post));
 
 	commit();
 

@@ -576,17 +576,20 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 			PRINT(S(  "<span class='space'> / </span>"));
 		if (post_x_real_ip(post).version)
 			PRINT(S(  "<span class='ip x-real-ip' title='X-Real-IP'>"), IP(post_x_real_ip(post)), S("</span>"));
-		if (post_x_forwarded_for_count(post) && !(post_x_real_ip(post).version && ip_eq(&post_x_forwarded_for(post)[0], &post_x_real_ip(post)))) {
-			PRINT(S(  "<span class='space'> / </span>"
-			          "<span class='ip x-forwarded-for' title='X-Forwarded-For'>"));
-			struct ip *ips = post_x_forwarded_for(post);
-			int comma = 0;
-			for (size_t i=0; i<post_x_forwarded_for_count(post); ++i) {
-				PRINT(comma?S("<span class='comma'>, </span>"):S(""), S("<span>"), IP(ips[i]), S("</span>"));
-				comma = 1;
+		struct ip *ips = post_x_forwarded_for(post);
+		int comma = 0;
+		for (size_t i=0; i<post_x_forwarded_for_count(post); ++i) {
+			if (post_x_real_ip(post).version && ip_eq(&post_x_real_ip(post), &ips[i]))
+				continue;
+			if (!comma) {
+				PRINT(S(  "<span class='space'> / </span>"
+				          "<span class='ip x-forwarded-for' title='X-Forwarded-For'>"));
 			}
-			PRINT(S(  "</span>"));
+			PRINT(comma?S("<span class='comma'>, </span>"):S(""), S("<span>"), IP(ips[i]), S("</span>"));
+			comma = 1;
 		}
+		if (comma)
+			PRINT(S(  "</span>"));
 	}
 	PRINT(S(          "<span class='space'> </span>"
 	                  "<span class='time'>"), HTTP_DATE(post_timestamp(post)), S("</span>"

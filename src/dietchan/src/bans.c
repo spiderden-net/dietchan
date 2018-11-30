@@ -123,6 +123,30 @@ int64 any_ip_affected(struct ip *ip, struct ip *x_real_ip, array *x_forwarded_fo
 	return affected;
 }
 
+void create_global_ban(const struct ip *ip, enum ban_type type, enum ban_target target,
+                       uint64 timestamp, int64 duration, uint64 post)
+{
+	struct ban *ban = ban_new();
+	uint64 ban_counter = master_ban_counter(master)+1;
+	master_set_ban_counter(master, ban_counter);
+	ban_set_id(ban, ban_counter);
+	ban_set_enabled(ban, 1);
+	ban_set_type(ban, BAN_FLOOD);
+	ban_set_target(ban, BAN_TARGET_POST);
+	ban_set_timestamp(ban, timestamp);
+	ban_set_duration(ban, duration);
+	struct ip_range range;
+	range.ip = *ip;
+	if (ip->version == IP_V6)
+		range.range = 48;
+	else
+		range.range = 32;
+	ban_set_range(ban, range);
+	ban_set_post(ban, post);
+
+	insert_ban(ban);
+}
+
 void purge_expired_bans()
 {
 	uint64 now = time(NULL);

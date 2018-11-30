@@ -18,6 +18,9 @@ int64 any_ip_affected(struct ip *ip, struct ip *x_real_ip, array *x_forwarded_fo
                       struct board *board, enum ban_target target,
                       int64 (*predicate)(struct ip *ip, struct board *board, enum ban_target target));
 
+void create_global_ban(const struct ip *ip, enum ban_type type, enum ban_target target,
+                       uint64 timestamp, int64 duration, uint64 post);
+
 void purge_expired_bans();
 
 #endif // BANS_H
