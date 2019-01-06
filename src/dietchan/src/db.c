@@ -82,7 +82,7 @@ db_obj* db_open(const char *file)
 	io_closeonexec(db->journal_fd);
 
 	db->priv_map = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE,
-	                    MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
+	                    MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
 	if (db->priv_map == MAP_FAILED) {
 		perror("mmap (anonymous) failed");
 		goto fail;
