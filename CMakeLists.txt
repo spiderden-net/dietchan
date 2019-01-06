@@ -4,11 +4,17 @@ include(ExternalProject)
 
 set(BUILD_ROOT "${PROJECT_SOURCE_DIR}/build")
 
+# Workaround for old CMake
+IF (${CMAKE_MAJOR_VERSION} LESS 3)
+SET(HACK1 DOWNLOAD_COMMAND wget -qO- https://www.fefe.de/dietlibc/dietlibc-0.34.tar.xz | unxz | tar xv -C ${PROJECT_SOURCE_DIR}/src/dietlibc --strip-components=1 )
+ENDIF (${CMAKE_MAJOR_VERSION} LESS 3)
+
 ExternalProject_Add(
 	dietlibc
 	#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
 	#CVS_MODULE "dietlibc"
 	URL "https://www.fefe.de/dietlibc/dietlibc-0.34.tar.xz"
+	${HACK1}
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/dietlibc"
 	PREFIX "${PROJECT_SOURCE_DIR}/.prefix/dietlibc"
 	BUILD_IN_SOURCE 1
@@ -23,11 +29,17 @@ ExternalProject_Add(
 		chmod +x ${BUILD_ROOT}/diet-gcc
 )
 
+# Workaround for old CMake
+IF (${CMAKE_MAJOR_VERSION} LESS 3)
+SET(HACK2 DOWNLOAD_COMMAND wget -qO- https://www.fefe.de/libowfat/libowfat-0.32.tar.xz | unxz | tar xv -C ${PROJECT_SOURCE_DIR}/src/libowfat --strip-components=1 )
+ENDIF (${CMAKE_MAJOR_VERSION} LESS 3)
+
 ExternalProject_Add(
 	libowfat
 	#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
 	#CVS_MODULE "libowfat"
 	URL "https://www.fefe.de/libowfat/libowfat-0.32.tar.xz"
+	${HACK2}
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/libowfat"
 	PREFIX "${PROJECT_SOURCE_DIR}/.prefix/libowfat"
 	BUILD_IN_SOURCE 1
