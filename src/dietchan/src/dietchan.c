@@ -351,12 +351,12 @@ int main(int argc, char* argv[])
 
 	if (optind < argc) {
 		if (case_equals(argv[optind], "import")) {
-			if (db_init("imported_db", 0) < 0)
+			if (open_database("imported_db", 0) < 0)
 				return -1;
 
 			return import();
 		} else if (case_equals(argv[optind], "export")) {
-			if (db_init("dietchan_db", 1) < 0)
+			if (open_database("dietchan_db", 1) < 0)
 				return -1;
 			export();
 			return 0;
@@ -369,7 +369,7 @@ int main(int argc, char* argv[])
 
 
 	// Open database
-	if (db_init("dietchan_db", 1) < 0)
+	if (open_database("dietchan_db", 1) < 0)
 		return -1;
 
 	// Create some required directories if they don't exist

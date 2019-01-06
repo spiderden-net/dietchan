@@ -19,7 +19,7 @@ db_hashmap captcha_tbl;
 static void insert_ban_into_hashmap(struct ban *ban);
 static void delete_ban_from_hashmap(struct ban *ban);
 
-int db_init(const char *file, int create_default)
+int open_database(const char *file, int create_default)
 {
 	db = db_open(file);
 	if (!db)
