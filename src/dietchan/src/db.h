@@ -34,7 +34,6 @@ typedef struct db_obj {
 	int   fd;
 	int   journal_fd;
 	int   changed;
-	char *shared_map;
 	char *priv_map;
 	int   transactions;
 	array dirty_regions;

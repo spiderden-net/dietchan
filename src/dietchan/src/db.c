@@ -53,10 +53,9 @@ static void db_replay_journal(db_obj *db);
 static void db_init(db_obj *db);
 static void db_grow(db_obj *db);
 
-//#define MAP_SIZE 1024UL*1024UL*1024UL // 1 GB... use this for valgrind
 #define MAP_SIZE ((sizeof(long)==8)? \
-                  (1024UL*1024UL*1024UL*1024UL):   /* 1 TB... ought to be enough for anyone */  \
-                  (256UL*1024UL*1024UL))           /* 256 MB... use this for 32 bit systems */
+                  (1024UL*1024UL*1024UL):   /* 1 GB... ought to be enough for anyone */  \
+                  (256UL*1024UL*1024UL))    /* 256 MB... use this for 32 bit systems */
 
 db_obj* db_open(const char *file)
 {
@@ -82,23 +81,24 @@ db_obj* db_open(const char *file)
 	db->journal_fd = open_rw(journal);
 	io_closeonexec(db->journal_fd);
 
-	db->shared_map = mmap(0, MAP_SIZE, PROT_WRITE, MAP_SHARED | MAP_NORESERVE, db->fd, 0);
-	if (db->shared_map == 0) {
-		perror("mmap (shared) is NULL");
+	db->priv_map = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE,
+	                    MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
+	if (db->priv_map == MAP_FAILED) {
+		perror("mmap (anonymous) failed");
 		goto fail;
 	}
-	if (db->shared_map == (char*)-1) {
-		perror("mmap (shared) failed");
+
+	off_t size = lseek(db->fd, 0, SEEK_END);
+	if (size < 0)
 		goto fail;
-	}
-	db->priv_map   = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
-	if (db->priv_map == 0) {
-		perror("mmap is NULL");
-		goto fail;
-	}
-	if (db->priv_map == (char*)-1) {
-		perror("mmap (private) failed");
-		goto fail;
+
+	if (size > 0) {
+		db->priv_map = mmap(db->priv_map, size, PROT_READ | PROT_WRITE,
+		                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
+		if (db->priv_map == MAP_FAILED) {
+			perror("mmap (private) failed");
+			goto fail;
+		}
 	}
 
 	db->header = (db_header*)db->priv_map;
@@ -107,7 +107,6 @@ db_obj* db_open(const char *file)
 	if (db_check_journal(db) == 1) {
 		db_replay_journal(db);
 	} else {
-		off_t size = lseek(db->fd, 0, SEEK_END);
 		if (size == 0) {
 			db_init(db);
 		}
@@ -143,6 +142,7 @@ static int get_bucket_for_size(db_obj *db, uint64 size)
 		if (i==0 || net_bucket_size(i-1) < size)
 			return i;
 	}
+	assert(0); // unreached
 }
 
 static void extract_bucket(db_obj *db, db_bucket *bucket)
@@ -395,7 +395,7 @@ void db_invalidate_region(db_obj *db, void *ptr, const uint64 size)
 static void db_init(db_obj *db)
 {
 	uint64 size = sizeof(db_header);
-	fallocate(db->fd, 0, 0, size);
+	ftruncate(db->fd, size);
 
 	db_begin_transaction(db);
 
@@ -426,16 +426,21 @@ static void db_init(db_obj *db)
 static void db_grow(db_obj *db)
 {
 	uint64 order = db->header->bucket_count;
+	void *extended_map=MAP_FAILED;
+	size_t new_size=db->header->size;
 	if (order == 0) {
 		uint64 s = bucket_size(order-1);
-		fallocate(db->fd, 0, 0, sizeof(db_header) + 2*s);
+		new_size = sizeof(db_header)+2*s;
+		ftruncate(db->fd, sizeof(db_header) + 2*s);
+
 		db_bucket *bucket=(db_bucket*)db->bucket0;
 		bucket->order = 0;
 		bucket->free = 1;
 		insert_bucket(db,bucket);
 	} else {
 		uint64 s = bucket_size(order-1);
-		fallocate(db->fd, 0, 0, sizeof(db_header) + 2*s);
+		new_size = sizeof(db_header)+2*s;
+		ftruncate(db->fd, new_size);
 
 		db_bucket *bucket = (db_bucket*)(db->bucket0 + s);
 		bucket->order = order-1;
@@ -490,8 +495,47 @@ fail:
 	return -1;
 }
 
+static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
+{
+	size_t remaining = num_bytes;
+	char buf[64*1024];
+
+	while (remaining > 0) {
+		// Read into buffer
+		size_t buffered = 0;
+		size_t want_read = remaining;
+		if (want_read > sizeof(buf))
+			want_read = sizeof(buf);
+		while (want_read > 0) {
+			ssize_t actually_read = read(src_fd, buf+buffered, want_read);
+			if (actually_read < 0)
+				return -1;
+			buffered   += actually_read;
+			want_read  -= actually_read;
+		}
+
+		// Write buffer to destination
+		size_t consumed = 0;
+		size_t want_write = buffered;
+		while (want_write > 0) {
+			ssize_t actually_written =  write(dst_fd, buf+consumed, want_write);
+			if (actually_written < 0)
+				return -1;
+			consumed   += actually_written;
+			want_write -= actually_written;
+		}
+
+		remaining -= consumed;
+	}
+	return 0;
+}
+
 static void db_replay_journal(db_obj *db)
 {
+	off_t old_db_size = lseek(db->fd, 0, SEEK_END);
+	if (old_db_size < 0)
+		goto fail;
+
 	journal_entry_type type;
 	db_ptr _ptr;
 	uint64 size;
@@ -513,13 +557,27 @@ static void db_replay_journal(db_obj *db)
 			if (read(db->journal_fd, &size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
 				goto fail;
 
-			char *write_ptr = db->shared_map + _ptr;
-
-			//printf("Replay %p %d\n", _ptr, size);
-
-			consumed = read(db->journal_fd, write_ptr, size);
-			if (consumed < size)
+			if (lseek(db->fd, _ptr, SEEK_SET) < 0)
 				goto fail;
+
+			if (copy_data(db->journal_fd, db->fd, size) < 0)
+				goto fail;
+		}
+	}
+
+	off_t new_db_size = lseek(db->fd, 0, SEEK_END);
+	if (new_db_size < 0)
+		goto fail;
+
+	assert (new_db_size >= old_db_size);
+
+	// Size changed, have to remap pages
+	if (new_db_size > old_db_size) {
+		db->priv_map = mmap(db->priv_map, new_db_size, PROT_READ | PROT_WRITE,
+		                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
+		if (db->priv_map == MAP_FAILED) {
+			perror("mmap (private) failed");
+			goto fail;
 		}
 	}
 
@@ -592,7 +650,7 @@ void db_commit(db_obj *db)
 
 	db_replay_journal(db);
 
-	if (msync(db->shared_map, db->header->size, MS_SYNC) == 0) {
+	if (fsync(db->fd) == 0) {
 		lseek(db->journal_fd, 0, SEEK_SET);
 		ftruncate(db->journal_fd, 0);
 		fsync(db->journal_fd);
