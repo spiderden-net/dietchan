@@ -49,4 +49,5 @@ include_directories(
 target_link_libraries(
 	"dietchan"
 	"${libowfat_LIBRARIES}"
+	"pthread"
 )

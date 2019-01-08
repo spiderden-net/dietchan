@@ -48,10 +48,14 @@ static int region_boundary_comp(const void *_a, const void *_b)
 #define JOURNAL_WRITE  0
 #define JOURNAL_COMMIT 1
 
-static int db_check_journal(db_obj *db);
+static int   db_check_journal(db_obj *db);
 static int db_replay_journal(db_obj *db);
-static void db_init(db_obj *db);
-static void db_grow(db_obj *db);
+static void  db_init(db_obj *db);
+static void  db_grow(db_obj *db);
+
+#ifdef ASYNC_LOG
+static void* db_journal_thread(void *arg);
+#endif
 
 #define MAP_SIZE ((sizeof(long)==8)? \
                   (1024UL*1024UL*1024UL):   /* 1 GB... ought to be enough for anyone */  \
@@ -111,6 +115,15 @@ db_obj* db_open(const char *file)
 	db->header = (db_header*)db->priv_map;
 	db->bucket0 = (char*)db->header + sizeof(db_header) - 1; /* -1 for alignment */
 
+#ifdef ASYNC_LOG
+	pthread_mutex_init(&db->log_mutex, 0);
+	pthread_cond_init(&db->log_cond, 0);
+	db->log_capacity = 64*1024 /*5*/;
+	db->log_buf = malloc(db->log_capacity);
+	if (pthread_create(&db->log_thread, NULL, db_journal_thread, db) != 0)
+		goto fail;
+#endif
+	
 	// If it's a new database, initialize
 	if (size == 0) {
 		db_init(db);
@@ -125,6 +138,7 @@ db_obj* db_open(const char *file)
 	return db;
 
 fail:
+	perror("FAIL");
 	free(db);
 	return 0;
 }
@@ -582,6 +596,13 @@ static int db_replay_journal(db_obj *db)
 
 	assert (new_db_size >= old_db_size);
 
+	if (fsync(db->fd) == 0) {
+		lseek(db->journal_fd, 0, SEEK_SET);
+		ftruncate(db->journal_fd, 0);
+		fsync(db->journal_fd);
+	} else {
+		goto fail;
+	}
 	//printf("success!!!!!\n");
 	return 0;
 
@@ -590,6 +611,190 @@ fail:
 	return -1;
 }
 
+#ifdef ASYNC_LOG
+
+static void db_read_log(db_obj *db, void *buf, size_t length)
+{
+	// Read length bytes from the ring buffer and block until are enough bytes available.
+	
+	size_t offset = 0;
+	size_t remaining = length;
+
+	pthread_mutex_lock(&db->log_mutex);
+	while (remaining > 0) {
+		size_t data_left = 0;
+
+		while (data_left == 0) {
+			if (db->log_full || (db->log_consumer > db->log_producer))
+				data_left = db->log_capacity - db->log_consumer;
+			else
+				data_left = db->log_producer - db->log_consumer;
+
+			if (data_left == 0)
+				pthread_cond_wait(&db->log_cond, &db->log_mutex);
+		}
+
+		size_t chunk = remaining;
+		if (chunk > data_left)
+			chunk = data_left;
+
+		memcpy(buf + offset, db->log_buf + db->log_consumer, chunk);
+
+		offset += chunk;
+		remaining -= chunk;
+		db->log_consumer += chunk;
+
+		assert (db->log_consumer <= db->log_capacity);
+
+		if (db->log_consumer == db->log_capacity)
+			db->log_consumer = 0;
+
+		db->log_full = 0;
+
+		pthread_cond_signal(&db->log_cond);
+
+	}
+	pthread_mutex_unlock(&db->log_mutex);
+}
+
+static void* db_journal_thread(void *arg)
+{
+	db_obj *db = (db_obj*)arg;
+	uint64_t goal_transaction=0;
+
+	// For some reason we crash when we try to allocate 64kb on the stack, so allocate on the heap.
+	char *buf = malloc(64*1024);
+	
+	while (1) {
+		pthread_mutex_lock(&db->log_mutex);
+
+		while (db->produced_transactions == db->consumed_transactions)
+			pthread_cond_wait(&db->log_cond, &db->log_mutex);
+	
+		// We consume until goal_transaction, then do a single fsync.
+		goal_transaction = db->produced_transactions;
+
+		pthread_mutex_unlock(&db->log_mutex);
+	
+		lseek(db->journal_fd, 0, SEEK_END);
+
+		while (db->consumed_transactions < goal_transaction) {
+			journal_entry_type type = 0;
+			db_ptr region_start     = 0;
+			uint64 region_size      = 0;
+
+			db_read_log(db, &type, sizeof(journal_entry_type));
+
+			if (type == JOURNAL_COMMIT) {
+				++db->consumed_transactions;
+				if (db->consumed_transactions == goal_transaction)
+					break;
+			} else if (type == JOURNAL_WRITE) {
+				db_read_log(db, &region_start, sizeof(db_ptr));
+				db_read_log(db, &region_size, sizeof(uint64));
+
+				if (write(db->journal_fd, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
+					goto fail;
+				if (write(db->journal_fd, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
+					goto fail;
+				if (write(db->journal_fd, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
+					goto fail;
+
+				size_t remaining = region_size;
+				while (remaining > 0) {
+					size_t chunk = remaining;
+					if (chunk > sizeof(buf))
+						chunk = sizeof(buf);
+					db_read_log(db, buf, chunk);
+					if (write(db->journal_fd, buf, chunk) < chunk)
+						goto fail;
+					remaining -= chunk;
+				}
+			} else {
+				assert (0);
+				goto fail;
+			}
+		}
+
+		if (fsync(db->journal_fd) == -1) {
+			perror("FAIL, COULD NOT FSYNC");
+			goto fail;
+		}
+
+		journal_entry_type type = JOURNAL_COMMIT;
+		write(db->journal_fd, &type, sizeof(journal_entry_type));
+
+		if (db_replay_journal(db) == -1)
+			goto fail;
+	}
+fail:
+	perror("Error writing journal");
+	exit(-1);
+}
+
+#endif
+
+static ssize_t db_write_log(db_obj *db, const void *data, size_t length)
+{
+#ifdef ASYNC_LOG
+	size_t offset = 0;
+	size_t remaining = length;
+	
+	pthread_mutex_lock(&db->log_mutex);
+
+	while (remaining > 0) {
+
+		// Space that we can sequentially write from our current position.
+		// Either to the end of the buffer (a) or to the position of the reader (b).
+		//
+		// (a)          |-----------------------|
+		//       --c----p------------------------
+		//
+		// (b)          |--------|
+		//       -------p--------c---------------
+		size_t space_left = 0;
+
+		while (space_left == 0) {
+			if (!db->log_full && (db->log_producer >= db->log_consumer))
+				space_left = db->log_capacity - db->log_producer;
+			else
+				space_left = db->log_consumer - db->log_producer;
+
+			if (space_left == 0)
+				pthread_cond_wait(&db->log_cond, &db->log_mutex);
+		}
+
+		// Chunk = number of bytes we will write in this iteration.
+		size_t chunk = remaining;
+		if (chunk > space_left)
+			chunk = space_left;
+
+		assert (chunk <= db->log_capacity - db->log_producer);
+		
+		memcpy(db->log_buf + db->log_producer, data + offset, chunk);
+
+		offset           += chunk;
+		remaining        -= chunk;
+		db->log_producer += chunk;
+
+		assert (db->log_producer <= db->log_capacity);
+		if (db->log_producer == db->log_capacity)
+			db->log_producer = 0;
+
+		if (db->log_producer == db->log_consumer)
+			db->log_full = 1;
+
+		pthread_cond_signal(&db->log_cond);
+	}
+
+	pthread_mutex_unlock(&db->log_mutex);
+
+	return offset;
+
+#else
+	return write(db->journal_fd, data, length);
+#endif
+}
 
 void db_commit(db_obj *db)
 {
@@ -606,7 +811,13 @@ void db_commit(db_obj *db)
 	      sizeof(db_region_boundary),
 	      region_boundary_comp);
 
+#ifdef ASYNC_LOG
+	pthread_mutex_lock(&db->log_mutex);
+	++db->produced_transactions;
+	pthread_mutex_unlock(&db->log_mutex);
+#else
 	lseek(db->journal_fd, 0, SEEK_END);
+#endif
 
 	// Write changes to log, skip duplicate regions
 	db_ptr region_start = ~0L;
@@ -627,13 +838,13 @@ void db_commit(db_obj *db)
 
 				journal_entry_type type = JOURNAL_WRITE;
 				//printf("Invalidate %x - %x (%d)\n", (int)region_start, (int)region_end, (int)region_size);
-				if (unlikely(write(db->journal_fd, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type)))
+				if (db_write_log(db, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
 					goto fail;
-				if (unlikely(write(db->journal_fd, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr)))
+				if (db_write_log(db, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
 					goto fail;
-				if (unlikely(write(db->journal_fd, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64)))
+				if (db_write_log(db, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
 					goto fail;
-				if (unlikely(write(db->journal_fd, db->priv_map + region_start, region_size) < (ssize_t)region_size))
+				if (db_write_log(db, db->priv_map + region_start, region_size) < (ssize_t)region_size)
 					goto fail;
 			}
 		}
@@ -641,24 +852,22 @@ void db_commit(db_obj *db)
 
 	assert(nesting == 0);
 
+#ifndef ASYNC_LOG
 	if (fsync(db->journal_fd) == -1) {
 		perror("FAIL, COULD NOT FSYNC");
 		return;
 	}
+#endif
 
 	journal_entry_type type = JOURNAL_COMMIT;
-	write(db->journal_fd, &type, sizeof(journal_entry_type));
+	db_write_log(db, &type, sizeof(journal_entry_type));
 
-	if (db_replay_journal(db) < 0)
+#ifndef ASYNC_LOG
+	if (db_replay_journal(db) == -1)
 		goto fail;
+#endif
 
-	if (fsync(db->fd) == 0) {
-		lseek(db->journal_fd, 0, SEEK_SET);
-		ftruncate(db->journal_fd, 0);
-		fsync(db->journal_fd);
-
-		db->changed = 0;
-	}
+	db->changed = 0;
 
 	array_trunc(&db->dirty_regions);
 	return;

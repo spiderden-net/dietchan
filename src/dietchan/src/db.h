@@ -1,9 +1,15 @@
 #ifndef DB_H
 #define DB_H
 
-#include<libowfat/array.h>
-#include<libowfat/uint32.h>
-#include<libowfat/uint64.h>
+//#define ASYNC_LOG
+
+#ifdef ASYNC_LOG
+#include <pthread.h>
+#endif
+
+#include <libowfat/array.h>
+#include <libowfat/uint32.h>
+#include <libowfat/uint64.h>
 
 typedef int64 db_ptr;
 
@@ -37,6 +43,19 @@ typedef struct db_obj {
 	char *priv_map;
 	int   transactions;
 	array dirty_regions;
+
+#ifdef ASYNC_LOG
+	pthread_mutex_t  log_mutex;
+	pthread_cond_t   log_cond;
+	char            *log_buf;
+	size_t           log_capacity;
+	size_t           log_producer;
+	size_t           log_consumer;
+	int              log_full;
+	uint64           produced_transactions;
+	uint64           consumed_transactions;
+	pthread_t        log_thread;
+#endif
 
 	db_header *header;
 	char *bucket0;
