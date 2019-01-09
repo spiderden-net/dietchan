@@ -663,7 +663,8 @@ static void* db_journal_thread(void *arg)
 	uint64_t goal_transaction=0;
 
 	// For some reason we crash when we try to allocate 64kb on the stack, so allocate on the heap.
-	char *buf = malloc(64*1024);
+	size_t buf_size = 64*1024;
+	char *buf = malloc(buf_size);
 	
 	while (1) {
 		pthread_mutex_lock(&db->log_mutex);
@@ -703,8 +704,8 @@ static void* db_journal_thread(void *arg)
 				size_t remaining = region_size;
 				while (remaining > 0) {
 					size_t chunk = remaining;
-					if (chunk > sizeof(buf))
-						chunk = sizeof(buf);
+					if (chunk > buf_size)
+						chunk = buf_size;
 					db_read_log(db, buf, chunk);
 					if (write(db->journal_fd, buf, chunk) < chunk)
 						goto fail;
