@@ -671,11 +671,8 @@ static int post_page_finish (http_context *http)
 
 	commit();
 
-	// 302 apparently confuses Chrome's password manager
-	//HTTP_STATUS("302 Success");
-	//HTTP_WRITE("Location: ");
-	PRINT_STATUS("200 Success");
-	PRINT(S("Refresh: 0;"));
+	PRINT_STATUS("302 Success");
+	PRINT(S("Location: "));
 	print_post_url(http, post, 1);
 	PRINT(S("\r\n"));
 	PRINT_SESSION();
