@@ -49,7 +49,7 @@ static int region_boundary_comp(const void *_a, const void *_b)
 #define JOURNAL_COMMIT 1
 
 static int   db_check_journal(db_obj *db);
-static int db_replay_journal(db_obj *db);
+static int   db_replay_journal(db_obj *db);
 static void  db_init(db_obj *db);
 static void  db_grow(db_obj *db);
 
@@ -118,7 +118,7 @@ db_obj* db_open(const char *file)
 #ifdef ASYNC_LOG
 	pthread_mutex_init(&db->log_mutex, 0);
 	pthread_cond_init(&db->log_cond, 0);
-	db->log_capacity = 64*1024 /*5*/;
+	db->log_capacity = /*640*1024*/JOURNAL_BUFFER_SIZE /*5*/;
 	db->log_buf = malloc(db->log_capacity);
 	if (pthread_create(&db->log_thread, NULL, db_journal_thread, db) != 0)
 		goto fail;
@@ -533,7 +533,7 @@ static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
 			want_read = sizeof(buf);
 		while (want_read > 0) {
 			ssize_t actually_read = read(src_fd, buf+buffered, want_read);
-			if (actually_read < 0)
+			if (actually_read <= 0)
 				return -1;
 			buffered   += actually_read;
 			want_read  -= actually_read;
@@ -544,7 +544,7 @@ static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
 		size_t want_write = buffered;
 		while (want_write > 0) {
 			ssize_t actually_written =  write(dst_fd, buf+consumed, want_write);
-			if (actually_written < 0)
+			if (actually_written <= 0)
 				return -1;
 			consumed   += actually_written;
 			want_write -= actually_written;
@@ -597,12 +597,16 @@ static int db_replay_journal(db_obj *db)
 	assert (new_db_size >= old_db_size);
 
 	if (fsync(db->fd) == 0) {
-		lseek(db->journal_fd, 0, SEEK_SET);
-		ftruncate(db->journal_fd, 0);
-		fsync(db->journal_fd);
+		if (lseek(db->journal_fd, 0, SEEK_SET) < 0)
+			goto fail;
+		if (ftruncate(db->journal_fd, 0) < 0)
+			goto fail;
+		if (fsync(db->journal_fd) < 0)
+			goto fail;
 	} else {
 		goto fail;
 	}
+
 	//printf("success!!!!!\n");
 	return 0;
 
@@ -630,8 +634,10 @@ static void db_read_log(db_obj *db, void *buf, size_t length)
 			else
 				data_left = db->log_producer - db->log_consumer;
 
-			if (data_left == 0)
+			if (data_left == 0) {
+				//printf("db_read_log: Waiting for more data\n");
 				pthread_cond_wait(&db->log_cond, &db->log_mutex);
+			}
 		}
 
 		size_t chunk = remaining;
@@ -649,6 +655,8 @@ static void db_read_log(db_obj *db, void *buf, size_t length)
 		if (db->log_consumer == db->log_capacity)
 			db->log_consumer = 0;
 
+		//if (db->log_full)
+		//	printf("db_read_log: log no longer full\n");
 		db->log_full = 0;
 
 		pthread_cond_signal(&db->log_cond);
@@ -663,19 +671,23 @@ static void* db_journal_thread(void *arg)
 	uint64_t goal_transaction=0;
 
 	// For some reason we crash when we try to allocate 64kb on the stack, so allocate on the heap.
-	size_t buf_size = 64*1024;
+	size_t buf_size = JOURNAL_BUFFER_SIZE;
 	char *buf = malloc(buf_size);
 	
 	while (1) {
 		pthread_mutex_lock(&db->log_mutex);
 
-		while (db->produced_transactions == db->consumed_transactions)
+		while (db->produced_transactions == db->consumed_transactions) {
+			//printf("db_journal_thread: waiting for transactions\n");
 			pthread_cond_wait(&db->log_cond, &db->log_mutex);
+		}
 	
 		// We consume until goal_transaction, then do a single fsync.
 		goal_transaction = db->produced_transactions;
 
 		pthread_mutex_unlock(&db->log_mutex);
+
+		//printf("Goal transaction: %d\n", (int)goal_transaction);
 	
 		lseek(db->journal_fd, 0, SEEK_END);
 
@@ -717,14 +729,22 @@ static void* db_journal_thread(void *arg)
 			}
 		}
 
+#if 0
+		{
+			off_t s = lseek(db->journal_fd, 0, SEEK_CUR);
+			printf("Syncing journal of size %d\n", (int)s);
+		}
+#endif
+
+
 		if (fsync(db->journal_fd) == -1) {
 			perror("FAIL, COULD NOT FSYNC");
 			goto fail;
 		}
-
+		
 		journal_entry_type type = JOURNAL_COMMIT;
 		write(db->journal_fd, &type, sizeof(journal_entry_type));
-
+		
 		if (db_replay_journal(db) == -1)
 			goto fail;
 	}
@@ -761,8 +781,10 @@ static ssize_t db_write_log(db_obj *db, const void *data, size_t length)
 			else
 				space_left = db->log_consumer - db->log_producer;
 
-			if (space_left == 0)
+			if (space_left == 0) {
+				//printf("db_write_log: waiting for data to be read!\n");
 				pthread_cond_wait(&db->log_cond, &db->log_mutex);
+			}
 		}
 
 		// Chunk = number of bytes we will write in this iteration.
@@ -782,8 +804,10 @@ static ssize_t db_write_log(db_obj *db, const void *data, size_t length)
 		if (db->log_producer == db->log_capacity)
 			db->log_producer = 0;
 
-		if (db->log_producer == db->log_consumer)
+		if (db->log_producer == db->log_consumer) {
+			//printf("db_write_log: full!\n");
 			db->log_full = 1;
+		}
 
 		pthread_cond_signal(&db->log_cond);
 	}

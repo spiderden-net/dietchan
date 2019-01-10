@@ -2,6 +2,7 @@
 #define DB_H
 
 //#define ASYNC_LOG
+#define JOURNAL_BUFFER_SIZE  (1024*1024) /* 1 MB */
 
 #ifdef ASYNC_LOG
 #include <pthread.h>
