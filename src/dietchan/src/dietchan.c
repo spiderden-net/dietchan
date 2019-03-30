@@ -246,7 +246,7 @@ int handle_write_events(int limit)
 		if (!ctx) {
 			io_dontwantwrite(s);
 			io_close(s);
-			printf("Warning: cookie is null\n");
+			buffer_putsflush(buffer_2, "Warning: cookie is null\n");
 			continue;
 		}
 		context_flush(ctx);
@@ -258,8 +258,11 @@ void add_listener(struct ip ip, uint16 port)
 {
 	char buf[256];
 	buf[fmt_ip(buf,&ip)] = '\0';
-	fprintf(stderr, "Creating listener on port %d for address %s\n", (int)port, buf);
-
+	buffer_puts(buffer_2, "Creating listener (try http://");
+	buffer_puts(buffer_2, buf);
+	buffer_puts(buffer_2, ":");
+	buffer_putulong(buffer_2, (unsigned long)port);
+	buffer_putsflush(buffer_2, "/c for the default board).\n");
 	struct listener *listener = listeners + listener_count;
 	listener->ip = ip;
 
