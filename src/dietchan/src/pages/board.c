@@ -168,9 +168,11 @@ static int  board_page_finish (http_context *http)
 	PRINT_BODY();
 	print_page_header(http, S("/"), E(board_name(board)), S("/ – "), E(board_title(board)));
 	print_top_bar(http, page->user, page->url);
-	PRINT(S("<h1>/"), E(board_name(board)), S("/ – "), E(board_title(board)), S("</h1>"
-	        "<hr>"));
-	print_reply_form(http, board, 0, captcha, page->user),
+	PRINT(S("<h1>/"), E(board_name(board)), S("/ – "), E(board_title(board)), S("</h1>"));
+	if (can_make_thread(page->user, &page->ip, &page->x_real_ip, &page->x_forwarded_for, board)) {
+		PRINT(S("<hr>"));
+		print_reply_form(http, board, 0, captcha, page->user);
+	}
 	print_board_nav(http, board, page->page);
 	PRINT(S("<hr>"
 	        "<form action='"), S(PREFIX), S("/mod' method='post'>"));

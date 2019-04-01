@@ -211,6 +211,7 @@ static int  mod_page_finish (http_context *http)
 			switch (ban_target(ban)) {
 				case BAN_TARGET_POST:   page->ban_target=strdup("posts"); break;
 				case BAN_TARGET_REPORT: page->ban_target=strdup("reports"); break;
+				case BAN_TARGET_THREAD: page->ban_target=strdup("threads"); break;
 			}
 		} else {
 			page->ban_target = strdup("posts");
@@ -505,6 +506,8 @@ static int  mod_page_finish (http_context *http)
 				ban_set_target(ban, BAN_TARGET_POST);
 			if (case_equals(page->ban_target, "reports"))
 				ban_set_target(ban, BAN_TARGET_REPORT);
+			if (case_equals(page->ban_target, "threads"))
+				ban_set_target(ban, BAN_TARGET_THREAD);
 
 			ban_set_range(ban,     *range);
 			ban_set_timestamp(ban,  timestamp);
@@ -759,6 +762,7 @@ static int  mod_page_finish (http_context *http)
 				          "<td colspan='3'>"
 				            "<select name='ban_target'>"
 				              "<option value='posts'"),   (case_equals(page->ban_target, "posts"))?S(" selected"):S(""),   S(">Posts</option>"
+				              "<option value='threads'"), (case_equals(page->ban_target, "threads"))?S(" selected"):S(""), S(">Threads</option>"
 				              "<option value='reports'"), (case_equals(page->ban_target, "reports"))?S(" selected"):S(""), S(">Reports</option>"
 				            "</select>"
 				          "</td>"

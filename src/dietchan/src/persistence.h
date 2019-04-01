@@ -460,7 +460,8 @@ enum ban_type {
 
 enum ban_target {
 	BAN_TARGET_POST,
-	BAN_TARGET_REPORT
+	BAN_TARGET_REPORT,
+	BAN_TARGET_THREAD
 };
 
 enum ban_flags {

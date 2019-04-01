@@ -1,5 +1,7 @@
 #include "permissions.h"
 
+#include "bans.h"
+
 int is_mod_for_board(struct user *user, struct board *board)
 {
 	if (user && (user_type(user) == USER_MOD || user_type(user) == USER_ADMIN)) {
@@ -39,4 +41,13 @@ int can_see_ban(struct user *user, struct ban *ban)
 		}
 	}
 	return 0;
+}
+
+int can_make_thread(struct user *user, struct ip *ip, struct ip *x_real_ip,
+                    array *x_forwarded_for, struct board *board)
+{
+	return (is_mod_for_board(user, board) ||
+	        !any_ip_affected(ip, x_real_ip, x_forwarded_for, board,
+	                         BAN_TARGET_THREAD, is_banned));
+
 }

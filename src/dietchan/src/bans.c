@@ -109,14 +109,14 @@ int64 any_ip_affected(struct ip *ip, struct ip *x_real_ip, array *x_forwarded_fo
                       int64 (*predicate)(struct ip *ip, struct board *board, enum ban_target target))
 {
 	int64 affected = 0;
-	affected = predicate(ip, board, BAN_TARGET_POST);
+	affected = predicate(ip, board, target);
 	if (!affected)
-		affected = predicate(x_real_ip, board, BAN_TARGET_POST);
+		affected = predicate(x_real_ip, board, target);
 	if (!affected) {
 		size_t count = array_length(x_forwarded_for, sizeof(struct ip));
 		for (size_t i=0; i<count; ++i) {
 			struct ip *x = array_get(x_forwarded_for, sizeof(struct ip), i);
-			if (affected = predicate(x, board, BAN_TARGET_POST))
+			if (affected = predicate(x, board, target))
 				break;
 		}
 	}

@@ -404,6 +404,16 @@ static int post_page_finish (http_context *http)
 		return ERROR;
 	}
 
+	if (page->thread == -1 && !can_make_thread(page->user, &page->ip, &page->x_real_ip,
+	                                           &page->x_forwarded_for, board)) {
+			PRINT_STATUS_HTML("402 Verboten");
+			PRINT_SESSION();
+			PRINT_BODY();
+			PRINT(S("<h1>Du kannst in diesem Brett keinen Faden erstellen.</h1>"));
+			PRINT_EOF();
+			return ERROR;
+	}
+
 	// New threads must contain text.
 	// Posts without text are okay, as long as they contain at least one file.
 	if ((!page->text || page->text[0] == '\0') &&
