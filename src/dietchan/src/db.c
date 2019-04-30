@@ -546,7 +546,7 @@ static void db_replay_journal(db_obj *db)
 	while (1) {
 		consumed = read(db->journal_fd, &type, sizeof(journal_entry_type));
 		if (consumed == 0)
-			goto success;
+			break;
 		if (consumed < (ssize_t)sizeof(journal_entry_type))
 			goto fail;
 
@@ -581,7 +581,6 @@ static void db_replay_journal(db_obj *db)
 		}
 	}
 
-success:
 	//printf("success!!!!!\n");
 	return;
 
