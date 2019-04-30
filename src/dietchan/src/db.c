@@ -49,7 +49,7 @@ static int region_boundary_comp(const void *_a, const void *_b)
 #define JOURNAL_COMMIT 1
 
 static int db_check_journal(db_obj *db);
-static void db_replay_journal(db_obj *db);
+static int db_replay_journal(db_obj *db);
 static void db_init(db_obj *db);
 static void db_grow(db_obj *db);
 
@@ -80,11 +80,18 @@ db_obj* db_open(const char *file)
 	io_closeonexec(db->fd);
 	db->journal_fd = open_rw(journal);
 	io_closeonexec(db->journal_fd);
+	
+	// Replay journal if it contains valid data
+	if (db_check_journal(db) == 1) {
+		if (db_replay_journal(db) < 0)
+			goto fail;
+	}
 
+	// Reserve address space
 	db->priv_map = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE,
 	                    MAP_ANONYMOUS | MAP_PRIVATE | MAP_NORESERVE, -1, 0);
 	if (db->priv_map == MAP_FAILED) {
-		perror("mmap (anonymous) failed");
+		perror("Could not reserve address space for database");
 		goto fail;
 	}
 
@@ -92,11 +99,12 @@ db_obj* db_open(const char *file)
 	if (size < 0)
 		goto fail;
 
+	// Map database into reserved address space
 	if (size > 0) {
 		db->priv_map = mmap(db->priv_map, size, PROT_READ | PROT_WRITE,
 		                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
 		if (db->priv_map == MAP_FAILED) {
-			perror("mmap (private) failed");
+			perror("Could not mmap the database");
 			goto fail;
 		}
 	}
@@ -104,13 +112,9 @@ db_obj* db_open(const char *file)
 	db->header = (db_header*)db->priv_map;
 	db->bucket0 = (char*)db->header + sizeof(db_header) - 1; /* -1 for alignment */
 
-	if (db_check_journal(db) == 1) {
-		db_replay_journal(db);
-	} else {
-		if (size == 0) {
-			db_init(db);
-		}
-	}
+	// If it's a new database, initialize
+	if (size == 0)
+		db_init(db);
 
 	return db;
 
@@ -530,7 +534,7 @@ static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
 	return 0;
 }
 
-static void db_replay_journal(db_obj *db)
+static int db_replay_journal(db_obj *db)
 {
 	off_t old_db_size = lseek(db->fd, 0, SEEK_END);
 	if (old_db_size < 0)
@@ -571,21 +575,12 @@ static void db_replay_journal(db_obj *db)
 
 	assert (new_db_size >= old_db_size);
 
-	// Size changed, have to remap pages
-	if (new_db_size > old_db_size) {
-		db->priv_map = mmap(db->priv_map, new_db_size, PROT_READ | PROT_WRITE,
-		                    MAP_FIXED | MAP_PRIVATE | MAP_NORESERVE, db->fd, 0);
-		if (db->priv_map == MAP_FAILED) {
-			perror("mmap (private) failed");
-			goto fail;
-		}
-	}
-
 	//printf("success!!!!!\n");
-	return;
+	return 0;
 
 fail:
 	perror("FAIL FAIL FAIL !!!!! Could not replay journal");
+	return -1;
 }
 
 
@@ -637,7 +632,7 @@ void db_commit(db_obj *db)
 		}
 	}
 
-	assert(likely(nesting == 0));
+	assert(nesting == 0);
 
 	if (fsync(db->journal_fd) == -1) {
 		perror("FAIL, COULD NOT FSYNC");
@@ -647,7 +642,8 @@ void db_commit(db_obj *db)
 	journal_entry_type type = JOURNAL_COMMIT;
 	write(db->journal_fd, &type, sizeof(journal_entry_type));
 
-	db_replay_journal(db);
+	if (db_replay_journal(db) < 0)
+		goto fail;
 
 	if (fsync(db->fd) == 0) {
 		lseek(db->journal_fd, 0, SEEK_SET);
