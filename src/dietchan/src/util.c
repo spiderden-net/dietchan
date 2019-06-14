@@ -5,9 +5,6 @@
 #include <libowfat/str.h>
 #include <libowfat/fmt.h>
 #include <libowfat/scan.h>
-#ifndef arc4random
-#include "arc4random.h"
-#endif
 
 size_t byte_str(const char *haystack, size_t haystack_length, const char *needle)
 {

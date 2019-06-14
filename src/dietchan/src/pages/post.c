@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include <libowfat/byte.h>
 #include <libowfat/case.h>
@@ -24,7 +25,6 @@
 #include <libowfat/ip6.h>
 
 #include "../util.h"
-#include "../arc4random.h"
 #include "../db.h"
 #include "../upload_job.h"
 #include "../util.h"

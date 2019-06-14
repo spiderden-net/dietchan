@@ -6,7 +6,7 @@
 #include <libowfat/str.h>
 #include <libowfat/fmt.h>
 #include <libowfat/byte.h>
-#include "arc4random.h"
+#include <stdlib.h>
 #include "util.h"
 #include "job.h"
 
