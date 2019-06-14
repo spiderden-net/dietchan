@@ -1,9 +1,8 @@
-﻿#define _BSD_SOURCE 1
+#define _BSD_SOURCE 1
 #define _GNU_SOURCE 1
 #define _XOPEN_SOURCE 1
 #include "post.h"
 
-#include "malloc.h"
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>

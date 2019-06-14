@@ -1,6 +1,5 @@
 #include "http.h"
 
-#include <alloca.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

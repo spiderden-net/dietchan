@@ -1,11 +1,13 @@
 #include "util.h"
 
 #include <ctype.h>
-#include <alloca.h>
+#include <stdlib.h>
 #include <libowfat/str.h>
 #include <libowfat/fmt.h>
 #include <libowfat/scan.h>
+#ifndef arc4random
 #include "arc4random.h"
+#endif
 
 size_t byte_str(const char *haystack, size_t haystack_length, const char *needle)
 {
@@ -333,7 +335,8 @@ size_t fmt_duration(char *out, uint64 duration)
 	uint64 t = duration;
 	uint64 r;
 	if (duration < 0) {
-		*out = '-1';
+		out[0] = '-';
+		out[1] = '1';
 		return 1;
 	}
 	r = t / (60*60*24*365); t %= (60*60*24*365);
