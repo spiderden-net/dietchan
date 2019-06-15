@@ -113,8 +113,15 @@ db_obj* db_open(const char *file)
 	db->bucket0 = (char*)db->header + sizeof(db_header) - 1; /* -1 for alignment */
 
 	// If it's a new database, initialize
-	if (size == 0)
+	if (size == 0) {
 		db_init(db);
+	} else if (size > db->header->size) {
+		// Fixup for old databases where size field wasn't updated in header
+		db_begin_transaction(db);
+		db->header->size = size;
+		db_invalidate_region(db, db->header, sizeof(db_header));
+		db_commit(db);
+	}
 
 	return db;
 
@@ -455,6 +462,7 @@ static void db_grow(db_obj *db)
 		merge_buckets(db, bucket);
 
 	}
+	db->header->size = new_size;
 	++(db->header->bucket_count);
 	db_invalidate_region(db, db->header, sizeof(db_header));
 }
