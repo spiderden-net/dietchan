@@ -37,38 +37,41 @@ void _print_esc_html(context *ctx, const char *unescaped, ssize_t max_length)
 static void _print_internal(context *ctx, const struct tpl_part *part)
 {
 	if (likely(part->type == T_STR)) {
-		context_write_data(ctx, (const char*)(intptr_t)part->param0, part->param1);
+		context_write_data(ctx, part->ptr, part->param1);
 		return;
 	}
 	if (likely(part->type == T_ESC_HTML)) {
-		_print_esc_html(ctx, (const char*)(intptr_t)part->param0, part->param1);
+		_print_esc_html(ctx, part->ptr, part->param1);
 		return;
 	}
 	char buf[256];
 	switch (part->type) {
 		case T_I64:
-			context_write_data(ctx, buf, fmt_int64(buf, ((int64)part->param0)));
+			context_write_data(ctx, buf, fmt_int64(buf, part->i64));
 			break;
 		case T_U64:
-			context_write_data(ctx, buf, fmt_uint64(buf, ((uint64)part->param0)));
+			context_write_data(ctx, buf, fmt_uint64(buf, part->u64));
 			break;
 		case T_X64:
-			context_write_data(ctx, buf, fmt_xint64(buf, ((uint64)part->param0)));
+			context_write_data(ctx, buf, fmt_xint64(buf, part->u64));
+			break;
+		case T_F64:
+			context_write_data(ctx, buf, fmt_double(buf, part->f64, 32, part->param1));
 			break;
 		case T_HTTP_DATE:
-			context_write_data(ctx, buf, fmt_httpdate(buf, ((time_t)part->param0)));
+			context_write_data(ctx, buf, fmt_httpdate(buf, ((time_t)part->u64)));
 			break;
 		case T_HUMAN:
-			context_write_data(ctx, buf, fmt_human(buf, ((unsigned long long)part->param0)));
+			context_write_data(ctx, buf, fmt_human(buf, ((unsigned long long)part->u64)));
 			break;
 		case T_HUMANK:
-			context_write_data(ctx, buf, fmt_humank(buf, ((unsigned long long)part->param0)));
+			context_write_data(ctx, buf, fmt_humank(buf, ((unsigned long long)part->u64)));
 			break;
 		case T_IP:
-			context_write_data(ctx, buf, fmt_ip(buf, ((struct ip*)(intptr_t)part->param0)));
+			context_write_data(ctx, buf, fmt_ip(buf, ((struct ip*)part->ptr)));
 			break;
 		case T_TIME_MS:
-			context_write_data(ctx, buf, fmt_time(buf, (uint64)part->param0));
+			context_write_data(ctx, buf, fmt_time(buf, part->u64));
 			break;
 	}
 }
