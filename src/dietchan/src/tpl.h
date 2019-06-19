@@ -54,6 +54,7 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 void print_post_url(http_context *http, struct post *post, int absolute);
 void print_post_url2(http_context *http, struct board *board, struct thread *thread, struct post *post, int absolute);
 void abbreviate_filename(char *buffer, size_t max_length);
+void abbreviate_filename_px(char *buffer, size_t max_width);
 size_t estimate_width(const char *buffer);
 
 

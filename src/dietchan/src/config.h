@@ -59,6 +59,15 @@
 // Maximum file size of a single upload
 #define MAX_UPLOAD_SIZE           (10*MEGA)
 
+// -- Thumbnails --
+// Maximum resolution of generated thumbnails
+#define THUMB_MAX_PHYSICAL_WIDTH        400
+#define THUMB_MAX_PHYSICAL_HEIGHT       400
+// Maximum dimensions of thumbnails as displayed in the HTML. It is a good idea to have a greater
+// physical resolution and scale the image down in the browser because of HiDPI monitors.
+#define THUMB_MAX_DISPLAY_WIDTH         200
+#define THUMB_MAX_DISPLAY_HEIGHT        200
+
 // -- Reports --
 #define REPORT_MAX_COMMENT_LENGTH       100
 

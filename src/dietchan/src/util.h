@@ -5,6 +5,8 @@
 #include <libowfat/array.h>
 #include <libowfat/scan.h>
 #include <libowfat/fmt.h>
+#include<libowfat/uint32.h>
+#include<libowfat/uint64.h>
 
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
@@ -23,6 +25,8 @@ void generate_random_string(char *output, size_t length, const char *charset);
 
 int check_password(const char *crypted_pw, const char *input);
 const char *crypt_password(const char *plain_pw);
+
+void calculate_thumbnail_size(uint64 *w, uint64 *h, uint64 max_w, uint64 max_h);
 
 size_t fmt_time(char *out, uint64 ms);
 size_t fmt_escape(char *buf, const char *unescaped);

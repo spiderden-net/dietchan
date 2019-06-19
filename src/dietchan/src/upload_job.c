@@ -9,10 +9,12 @@
 #include <libowfat/byte.h>
 #include <libowfat/buffer.h>
 #include <libowfat/str.h>
+#include <libowfat/fmt.h>
 #include <libowfat/case.h>
 #include <libowfat/open.h>
 #include <libowfat/scan.h>
 
+#include "config.h"
 #include "util.h"
 #include "mime_types.h"
 
@@ -28,7 +30,8 @@ static void upload_job_job_finish(job_context *job, int status);
 static void upload_job_error(struct upload_job *upload_job, int status, char *message);
 
 static void extract_meta_command(const char *file, const char *mime_type, char *command);
-static void thumbnail_command(const char *file, const char *mime_type, const char *thumbnail_base,
+static void thumbnail_command(const char *file, int64 original_width, int64 original_height,
+                              const char *mime_type, const char *thumbnail_base,
                               const char **ext, char *command);
 
 void upload_job_init(struct upload_job *upload_job, char *upload_dir)
@@ -285,7 +288,7 @@ static void start_thumbnail_job(struct upload_job *upload_job)
 	char buf[4096];
 	const char *ext;
 
-	thumbnail_command(upload_job->file_path, upload_job->mime_type, thumbnail_base, &ext, buf);
+	thumbnail_command(upload_job->file_path, upload_job->width, upload_job->height, upload_job->mime_type, thumbnail_base, &ext, buf);
 
 	upload_job->thumb_path = malloc(strlen(thumbnail_base) + strlen(ext));
 	strcat(upload_job->thumb_path, thumbnail_base);
@@ -317,22 +320,25 @@ static void finished_thumbnail_job(struct upload_job *upload_job)
 
 static void extract_meta_command(const char *file, const char *mime_type, char *command)
 {
+	size_t i=0;
 	if (case_starts(mime_type, "video/")) {
-		strcpy(command, "ffprobe -v error -show_entries format=duration:stream=index,codec_types,width,height -of default=noprint_wrappers=1 ");
-		strcat(command, file);
+		i += fmt_str(&command[i], "ffprobe -v error -show_entries format=duration:stream=index,codec_types,width,height -of default=noprint_wrappers=1 ");
+		i += fmt_str(&command[i], file);
 	} else {
 		int multipage=0;
 		if (case_equals(mime_type, "image/gif") ||
 		    case_equals(mime_type, "application/pdf"))
 			multipage=1;
-		strcpy(command, "identify -format 'width=%[fx:w]\\nheight=%[fx:h]\\n' ");
-		strcat(command, file);
+		i += fmt_str(&command[i], "identify -format 'width=%[fx:w]\\nheight=%[fx:h]\\n' ");
+		i += fmt_str(&command[i], file);
 		if (multipage)
-			strcat(command, "[0]");
+			i += fmt_str(&command[i], "[0]");
 	}
+	command[i] = '\0';
 }
 
-static void thumbnail_command(const char *file, const char *mime_type, const char *thumbnail_base,
+static void thumbnail_command(const char *file, int64 original_width, int64 original_height,
+                              const char *mime_type, const char *thumbnail_base,
                               const char **ext, char *command)
 {
 	*ext = "";
@@ -342,19 +348,19 @@ static void thumbnail_command(const char *file, const char *mime_type, const cha
 
 	int multipage=0;
 
+	size_t i=0;
+
 	if (case_starts(mime_type, "video/")) {
 		// Hardcoded at 1 sec right now
-		strcpy(command, "ffmpeg -ss 00:00:01.800 -i ");
-		strcat(command, file);
-		strcat(command, " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec bmp - ");
-
-		strcat(command, " | ");
-
+		i += fmt_str(&command[i], "ffmpeg -ss 00:00:01.800 -i ");
+		i += fmt_str(&command[i], file);
+		i += fmt_str(&command[i], " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec bmp - ");
+		i += fmt_str(&command[i], " | ");
 		// Call recursively to generate jpg thumbnail from bmp
-		thumbnail_command("-", "image/jpeg", thumbnail_base, ext, &command[strlen(command)]);
+		thumbnail_command("-", original_width, original_height, "image/jpeg", thumbnail_base, ext, &command[strlen(command)]);
 	} else if (case_equals(mime_type, "image/png") ||
-	    case_equals(mime_type, "image/gif") ||
-	    case_equals(mime_type, "application/pdf")) {
+	           case_equals(mime_type, "image/gif") ||
+	           case_equals(mime_type, "application/pdf")) {
 		*ext = ".png";
 		strcat(thumb_file, *ext);
 
@@ -362,37 +368,59 @@ static void thumbnail_command(const char *file, const char *mime_type, const cha
 		    case_equals(mime_type, "application/pdf"))
 			multipage=1;
 
-		strcpy(command, "convert ");
-		strcat(command, file);
+		i += fmt_str(&command[i], "convert ");
+		i += fmt_str(&command[i], file);
 		if (multipage)
-			strcat(command, "[0]");
+			i += fmt_str(&command[i], "[0]");
 
 		if (case_equals(mime_type, "application/pdf"))
-			strcat(command, " -flatten");
+			i += fmt_str(&command[i], " -flatten");
 
-		//strcat(command, " -resize 400x400 -quality 0 -profile /usr/share/color/icc/colord/sRGB.icc -strip ");
-		strcat(command, " -resize 400x400 -quality 0 -profile data/sRGB.icc -strip ");
-		strcat(command, thumb_file);
+		i += fmt_str(&command[i], " -resize ");
+		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
+		i += fmt_str(&command[i], "x");
+		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
+		i += fmt_str(&command[i], "\\> -quality 0 -profile data/sRGB.icc -strip ");
+		i += fmt_str(&command[i], thumb_file);
 
-		strcat(command, " && (");
+		i += fmt_str(&command[i], " && (");
 
 		// Imagemagick's PNG8 capabilities suck, so use pngquant to further optimize the size (optional)
-		strcat(command, "pngquant -f 32 ");
-		strcat(command, thumb_file);
-		strcat(command, " -o ");
-		strcat(command, thumb_file);
+		i += fmt_str(&command[i], "pngquant -f 32 ");
+		i += fmt_str(&command[i], thumb_file);
+		i += fmt_str(&command[i], " -o ");
+		i += fmt_str(&command[i], thumb_file);
 
-		strcat(command, " || true)");
+		i += fmt_str(&command[i], " || true)");
 	} else {
 		*ext = ".jpg";
 		strcat(thumb_file, *ext);
 
-		strcpy(command, "convert ");
-		strcat(command, " -define jpeg:size=800x800 -define jpeg:extent=20kb ");
-		strcat(command, file);
-		strcat(command, "'[400x400]' -auto-orient -sharpen 0.1 -quality 50 -sampling-factor 2x2,1x1,1x1 "
-		//                "-profile /usr/share/color/icc/colord/sRGB.icc -strip ");
-		                "-profile data/sRGB.icc -strip ");
-		strcat(command, thumb_file);
+		// Unfortunately Imagemagick input filters don't have a "resize only if larger" feature, so we have
+		// to use this workaround.
+		int resize = (original_width  > THUMB_MAX_PHYSICAL_WIDTH || 
+		              original_height > THUMB_MAX_PHYSICAL_HEIGHT || 
+		              original_width <= 0 || original_height <= 0);
+
+		i += fmt_str(&command[i], "convert ");
+		if (resize) {
+			i += fmt_str(&command[i], "-define jpeg:size=");
+			i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_WIDTH);
+			i += fmt_str(&command[i], "x");
+			i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_HEIGHT);
+		}
+		i += fmt_str(&command[i], " -define jpeg:extent=20kb ");
+		i += fmt_str(&command[i], file);
+		if (resize) {
+			i += fmt_str(&command[i], "'[");
+			i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
+			i += fmt_str(&command[i], "x");
+			i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
+			i += fmt_str(&command[i], "]'");
+		}
+		i += fmt_str(&command[i], " -auto-orient -sharpen 0.1 -quality 50 -sampling-factor 2x2,1x1,1x1 ");
+		i += fmt_str(&command[i], "-profile data/sRGB.icc -strip ");
+		i += fmt_str(&command[i], thumb_file);
 	}
+	command[i] = '\0';
 }

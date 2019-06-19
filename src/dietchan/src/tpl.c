@@ -335,7 +335,7 @@ void write_page_css(http_context *http)
 	          "display: inline-block;"
 	          "white-space: pre-wrap;"
 	          "max-width: 100%;"
-		  "margin: 0;"
+	          "margin: 0;"
 	        "}"
 	        "div.files {"
 	          "margin-bottom: .25em;"
@@ -364,8 +364,6 @@ void write_page_css(http_context *http)
 	        "}"
 	        ".file-thumbnail-img {"
 	          "vertical-align: bottom;"
-	          "max-width: 200px;"
-	          "max-height: 200px;"
 	        "}"
 	        "span.quote {"
 	          "color: #090;"
@@ -476,31 +474,15 @@ void pretty_print_mime(http_context *http, const char *mime_type)
 }
 
 
-static void calculate_thumbnail_size(uint64 *w, uint64 *h, uint64 max_size)
-{
-	if (*w <= max_size & *h <= max_size)
-		return;
-
-	double ww = *w;
-	double hh = *h;
-	if (ww > hh) {
-		*w = max_size;
-		*h = hh/ww*max_size;
-	} else {
-		*h = max_size;
-		*w = ww/hh*max_size;
-	}
-}
-
 void print_upload(http_context *http, struct upload *upload)
 {
 	uint64 w = upload_width(upload);
 	uint64 h = upload_height(upload);
-	calculate_thumbnail_size(&w,&h,200);
+	calculate_thumbnail_size(&w,&h,THUMB_MAX_DISPLAY_WIDTH,THUMB_MAX_DISPLAY_HEIGHT);
 
 	char buf[256];
 	strcpy(buf, upload_original_name(upload));
-	abbreviate_filename(buf, 0.15*w*strlen(buf)/estimate_width(buf));
+	abbreviate_filename_px(buf, w>100?w:100);
 
 	const char *mime = upload_mime_type(upload);
 
@@ -533,7 +515,7 @@ void print_upload(http_context *http, struct upload *upload)
 	          "</div>"
 	          "<div class='file-thumbnail'>"
 	            "<a href='"), S(PREFIX), S("/uploads/"), E(upload_file(upload)), S("'>"
-	              "<img class='file-thumbnail-img' "
+	              "<img class='file-thumbnail-img' width='"),F64(w,6),S("' height='"), F64(h,6), S("' "
 	                   "src='"), S(PREFIX), S("/uploads/"), S(upload_thumbnail(upload)), S("'>"
 	            "</a>"
 	          "</div>"
@@ -671,3 +653,8 @@ void abbreviate_filename(char *buffer, size_t max_length)
 	memmove(&buffer[start], ellipsis, strlen(ellipsis));
 }
 
+void abbreviate_filename_px(char *buffer, size_t max_width)
+{
+	size_t approx_character_count = 0.15*max_width*strlen(buffer)/estimate_width(buffer);
+	abbreviate_filename(buffer, approx_character_count);
+}

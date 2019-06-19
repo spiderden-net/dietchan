@@ -226,6 +226,22 @@ const char *crypt_password(const char *plain_pw)
 	return crypt(plain_pw, salt);
 }
 
+void calculate_thumbnail_size(uint64 *w, uint64 *h, uint64 max_w, uint64 max_h)
+{
+	if (*w <= max_w & *h <= max_h)
+		return;
+
+	double ww = *w;
+	double hh = *h;
+	if (ww*max_h > hh*max_w) {
+		*w = max_w;
+		*h = hh/ww*max_w;
+	} else {
+		*h = max_w;
+		*w = ww/hh*max_h;
+	}
+}
+
 size_t fmt_escape(char *buf, const char *unescaped)
 {
 	size_t escaped_length = 0;
