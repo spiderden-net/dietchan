@@ -156,8 +156,15 @@ static void start_mime_check_job(struct upload_job *upload_job)
 	assert(upload_job->state == UPLOAD_JOB_UPLOADED);
 
 	char command[512];
-	strcpy(command, "file --mime-type --brief -k -r ");
-	strcat(command, upload_job->file_path);
+	size_t i = 0;
+	i += fmt_str(&command[i], "file --mime-type --brief -k -r ");
+	i += fmt_str(&command[i], upload_job->file_path);
+
+	// Older versions of file don't support the -k and -r flags.
+	// Fallback in case the first command failed.
+	i += fmt_str(&command[i], " || file --mime-type --brief ");
+	i += fmt_str(&command[i], upload_job->file_path);
+	command[i] = '\0';
 
 	job_context *job = job_new(command);
 	job->info = upload_job;
@@ -291,7 +298,7 @@ static void start_thumbnail_job(struct upload_job *upload_job)
 	thumbnail_command(upload_job->file_path, upload_job->width, upload_job->height, upload_job->mime_type, thumbnail_base, &ext, buf);
 
 	upload_job->thumb_path = malloc(strlen(thumbnail_base) + strlen(ext));
-	strcat(upload_job->thumb_path, thumbnail_base);
+	strcpy(upload_job->thumb_path, thumbnail_base);
 	strcat(upload_job->thumb_path, ext);
 
 	upload_job->thumb_ext = ext;
@@ -357,7 +364,9 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		i += fmt_str(&command[i], " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec bmp - ");
 		i += fmt_str(&command[i], " | ");
 		// Call recursively to generate jpg thumbnail from bmp
-		thumbnail_command("-", original_width, original_height, "image/jpeg", thumbnail_base, ext, &command[strlen(command)]);
+		thumbnail_command("-", original_width, original_height, "image/jpeg", thumbnail_base, ext, &command[i]);
+		// Subcommand already added \0 at the end. Exit early so we don't truncate the command.
+		return;
 	} else if (case_equals(mime_type, "image/png") ||
 	           case_equals(mime_type, "image/gif") ||
 	           case_equals(mime_type, "application/pdf")) {

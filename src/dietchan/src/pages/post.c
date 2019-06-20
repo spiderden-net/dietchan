@@ -13,6 +13,7 @@
 #include <time.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <libowfat/byte.h>
 #include <libowfat/case.h>
@@ -642,8 +643,10 @@ static int post_page_finish (http_context *http)
 
 		// Move temporary files to their final locations
 		// Todo: handle errors
-		rename(upload_job->file_path, file_path);
-		rename(upload_job->thumb_path, thumb_path);
+		if (rename(upload_job->file_path, file_path) < 0)
+			printf("Renaming %s to %s failed: %s", upload_job->file_path, file_path, sys_errlist[errno]);
+		if (rename(upload_job->thumb_path, thumb_path) < 0)
+			printf("Renaming %s to %s failed: %s", upload_job->thumb_path, thumb_path, sys_errlist[errno]);
 
 		upload_set_file(up, filename);
 		upload_set_thumbnail(up, thumb_filename);
