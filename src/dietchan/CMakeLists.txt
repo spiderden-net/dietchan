@@ -15,7 +15,10 @@ SET(CMAKE_C_FLAGS_DEBUG "-O0 -g" )
 #SET(CMAKE_C_FLAGS "-Os" )
 
 IF (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
-	SET(CMAKE_C_FLAGS "-std=gnu99 -fstack-check -fstack-protector-all -pie -fPIE -mmitigate-rop -Wl,-z,relro,-z,now" )
+	SET(CMAKE_C_FLAGS "-std=gnu99 -fstack-check -fstack-protector-all -pie -fPIE -Wl,-z,relro,-z,now" )
+	IF ("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+		SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mmitigate-rop")
+	ENDIF()
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "(arm)|(ARM)")
 	SET(CMAKE_C_FLAGS "-std=gnu99 -fstack-check -fstack-protector-all -fPIE -Wl,-z,relro,-z,nowi -D__arm__" )
 ELSEIF (CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)")
@@ -46,5 +49,4 @@ include_directories(
 target_link_libraries(
 	"dietchan"
 	"${libowfat_LIBRARIES}"
-	"compat"
 )
