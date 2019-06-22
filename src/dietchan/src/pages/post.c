@@ -481,6 +481,18 @@ static int post_page_finish (http_context *http)
 	// Check captcha
 	if (any_ip_affected(&page->ip, &page->x_real_ip, &page->x_forwarded_for,
 	                    board, BAN_TARGET_POST, is_captcha_required)) {
+		struct captcha *captcha = find_captcha_by_id(page->captcha_id);
+		if (!captcha && master_captcha_count(master) <= 0) {
+			PRINT_STATUS_HTML("500 Interner Fehler");
+			PRINT_BODY();
+			PRINT(S("<h1>500 Interner Fehler</h1>"
+			        "<p>Für die Aktion wird ein Captcha benötigt, aber es sind keine Captchas vorhanden. "
+			        "Wenn du der Administrator bist, überprüfe, ob Captchas in der config.h-Datei aktiviert sind. "
+			        "Sollten Captchas aktiviert sein und dieser Fehler dennoch auftreten, ist beim Generieren der "
+			        "Captchas ein Fehler aufgetreten. Die Log-Ausgabe enthält nähere Informationen.</p>"));
+			PRINT_EOF();
+			return ERROR;
+		}
 		if (!page->captcha || str_equal(page->captcha, "")) {
 			PRINT_STATUS_HTML("403 Verboten");
 			PRINT_BODY();
@@ -488,7 +500,6 @@ static int post_page_finish (http_context *http)
 			PRINT_EOF();
 			return ERROR;
 		}
-		struct captcha *captcha = find_captcha_by_id(page->captcha_id);
 		if (!captcha || captcha_token(captcha) != page->captcha_token) {
 			PRINT_STATUS_HTML("403 Verboten");
 			PRINT_BODY();

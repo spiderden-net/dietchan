@@ -71,6 +71,22 @@
 // -- Reports --
 #define REPORT_MAX_COMMENT_LENGTH       100
 
+// -- Captcha --
+// Whether the captcha feature is enabled. 0=disabled, 1=enabled.
+// Note that to actually use the captcha, you have to create a ban in the control panel and set the type to "captcha".
+#define ENABLE_CAPTCHA                    0
+// Captchas are pregenerated and randomly picked from this pool. Only correctly solved captchas are
+// removed from the pool. This is so an attacker can't easily ddos the server by forcing it to constantly 
+// generate new captchas.
+// However, using a fixed captcha pool also has disadvantages: If it is too small, an attacker can simply
+// wait for the same captcha to appear again and effectively brute-force the solution. If you see ever this
+// happening, you should probably increase the pool size by an order of magnitude or more. 
+// As an additional countermeasure, we could also add a timeout value to generated captchas or throttle 
+// repeated captcha requests from the same IP, but this is not currently implemented.
+#define CAPTCHA_POOL_SIZE              1000
+// Max number of parallel processes used for generating new captchas.
+#define CAPTCHA_WORKERS                   4
+
 // -- Technical definitions -- CAREFUL! --
 
 // When changing these definitions, please note that some strings are allocated on the stack, so

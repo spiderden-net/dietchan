@@ -415,6 +415,11 @@ static int  mod_page_finish (http_context *http)
 		PRINT(S("<p>Kein Post ausgewählt.</p>"));
 		do_it = 0;
 	}
+	
+	if (case_equals(page->ban_type, "captcha") && master_captcha_count(master)==0) {
+		PRINT(S("<p class='error'><b>Achtung! Es sind keine Captchas vorhanden.</b> Die Captcha-Funktion ist entweder "
+		        "in der config.h-Datei deaktiviert, oder es ist beim Generieren der Captchas ein Fehler aufgetreten.</p>"));
+	}
 
 	// ---------------------------------------------------------------------------------------------
 

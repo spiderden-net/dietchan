@@ -21,7 +21,7 @@ struct captcha *random_captcha()
 	uint64 id = captchas[idx];
 
 	struct captcha *captcha = find_captcha_by_id(id);
-	assert(captcha);
+	//assert(captcha);
 	return captcha;
 }
 
@@ -134,18 +134,20 @@ static void captcha_job_finish(job_context *job, int status)
 	free(info);
 
 	// Keep generating captchas
-	if (master_captcha_count(master) + in_flight < 1000)
+	if (master_captcha_count(master) + in_flight < CAPTCHA_POOL_SIZE)
 		captcha_job_start();
 }
 
 void generate_captchas()
 {
+#if ENABLE_CAPTCHA
 	// Run up to 4 jobs in parallel
-	for (int i=0; i<4; ++i) {
-		// Generate up to 1000 captchas
-		if (master_captcha_count(master) + in_flight >= 1000)
+	for (int i=0; i<CAPTCHA_WORKERS; ++i) {
+		// Generate up to CAPTCHA_POOL_SIZE captchas
+		if (master_captcha_count(master) + in_flight >= CAPTCHA_POOL_SIZE)
 			return;
 		captcha_job_start();
 
 	}
+#endif
 }
