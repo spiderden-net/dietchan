@@ -336,7 +336,7 @@ static void extract_meta_command(const char *file, const char *mime_type, char *
 		if (case_equals(mime_type, "image/gif") ||
 		    case_equals(mime_type, "application/pdf"))
 			multipage=1;
-		i += fmt_str(&command[i], "identify -format 'width=%[fx:w]\\nheight=%[fx:h]\\n' ");
+		i += fmt_str(&command[i], MAGICK_COMMAND " identify -format 'width=%w\\nheight=%h\\n' ");
 		i += fmt_str(&command[i], file);
 		if (multipage)
 			i += fmt_str(&command[i], "[0]");
@@ -377,7 +377,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		    case_equals(mime_type, "application/pdf"))
 			multipage=1;
 
-		i += fmt_str(&command[i], "convert ");
+		i += fmt_str(&command[i], MAGICK_COMMAND " convert ");
 		i += fmt_str(&command[i], file);
 		if (multipage)
 			i += fmt_str(&command[i], "[0]");
@@ -411,7 +411,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		              original_height > THUMB_MAX_PHYSICAL_HEIGHT || 
 		              original_width <= 0 || original_height <= 0);
 
-		i += fmt_str(&command[i], "convert ");
+		i += fmt_str(&command[i], MAGICK_COMMAND " convert ");
 		if (resize) {
 			i += fmt_str(&command[i], "-define jpeg:size=");
 			i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_WIDTH);

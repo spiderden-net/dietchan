@@ -67,6 +67,13 @@
 // physical resolution and scale the image down in the browser because of HiDPI monitors.
 #define THUMB_MAX_DISPLAY_WIDTH         200
 #define THUMB_MAX_DISPLAY_HEIGHT        200
+// Backend to use for thumbnail generation:
+// - ImageMagick 6/7
+#define MAGICK_COMMAND                   ""
+// - ImageMagick 7+
+//#define MAGICK_COMMAND           "magick"
+// - GraphicsMagick
+//#define MAGICK_COMMAND               "gm"
 
 // -- Reports --
 #define REPORT_MAX_COMMENT_LENGTH       100
