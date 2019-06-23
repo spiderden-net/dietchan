@@ -405,28 +405,22 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		*ext = ".jpg";
 		strcat(thumb_file, *ext);
 
-		// Unfortunately Imagemagick input filters don't have a "resize only if larger" feature, so we have
-		// to use this workaround.
-		int resize = (original_width  > THUMB_MAX_PHYSICAL_WIDTH || 
-		              original_height > THUMB_MAX_PHYSICAL_HEIGHT || 
-		              original_width <= 0 || original_height <= 0);
-
 		i += fmt_str(&command[i], MAGICK_COMMAND " convert ");
-		if (resize) {
-			i += fmt_str(&command[i], "-define jpeg:size=");
-			i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_WIDTH);
-			i += fmt_str(&command[i], "x");
-			i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_HEIGHT);
-		}
+
+		i += fmt_str(&command[i], "-define jpeg:size=");
+		i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_WIDTH);
+		i += fmt_str(&command[i], "x");
+		i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_HEIGHT);
+
 		i += fmt_str(&command[i], " -define jpeg:extent=20kb ");
 		i += fmt_str(&command[i], file);
-		if (resize) {
-			i += fmt_str(&command[i], "'[");
-			i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
-			i += fmt_str(&command[i], "x");
-			i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
-			i += fmt_str(&command[i], "]'");
-		}
+
+		i += fmt_str(&command[i], " -resize ");
+		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
+		i += fmt_str(&command[i], "x");
+		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
+		i += fmt_str(&command[i], "\\>");
+
 		i += fmt_str(&command[i], " -auto-orient -sharpen 0.1 -quality 50 -sampling-factor 2x2,1x1,1x1 ");
 		i += fmt_str(&command[i], "-profile data/sRGB.icc -strip ");
 		i += fmt_str(&command[i], thumb_file);
