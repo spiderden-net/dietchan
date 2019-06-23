@@ -23,7 +23,7 @@ Das Datenbankformat könnte sich in Zukunft noch ändern, daher ist die Software
 
 ### Notwendig:
 
-- Linux
+- Linux / BSD
 - GCC
 - CMake
 - git
