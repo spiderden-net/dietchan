@@ -13,7 +13,7 @@ Features:
 - Web 1.0
 
 Beispiel-Installation:
-https://li691-139.members.linode.com/
+https://dietchan.org/
 
 ## Wichtiger Hinweis
 
@@ -27,15 +27,14 @@ Das Datenbankformat könnte sich in Zukunft noch ändern, daher ist die Software
 - GCC
 - CMake
 - git
-- cvs
 
 ## Laufzeit-Abhängigkeiten
 
 ### Notwendig:
 
-- Linux
+- Linux / BSD
 - file
-- Imagemagick
+- ImageMagick / GraphicsMagick
 - ffmpeg
 
 ### Empfohlen:
