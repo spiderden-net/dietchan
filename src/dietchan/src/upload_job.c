@@ -421,8 +421,15 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
 		i += fmt_str(&command[i], "\\>");
 
-		i += fmt_str(&command[i], " -auto-orient -sharpen 0.1 -quality 50 -sampling-factor 2x2,1x1,1x1 ");
-		i += fmt_str(&command[i], "-profile data/sRGB.icc -strip ");
+		i += fmt_str(&command[i], " -auto-orient -sharpen 0.1");
+		// Hack: '-define jpeg:extent' doesn't work on GM, so we use a lower quality setting so our 
+		// thumbnails don't end up too big.
+		if (strcmp(MAGICK_COMMAND, "gm") == 0)
+			i += fmt_str(&command[i], " -quality 20");
+		else
+			i += fmt_str(&command[i], " -quality 50");
+		i += fmt_str(&command[i], " -sampling-factor 2x2,1x1,1x1");
+		i += fmt_str(&command[i], " -profile data/sRGB.icc -strip ");
 		i += fmt_str(&command[i], thumb_file);
 	}
 	command[i] = '\0';
