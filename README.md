@@ -35,11 +35,12 @@ Das Datenbankformat könnte sich in Zukunft noch ändern, daher ist die Software
 - Linux / BSD
 - file
 - ImageMagick / GraphicsMagick
-- ffmpeg
 
-### Empfohlen:
+### Optional:
 
-- pngquant
+- pngquant (für bessere PNG-Komprimierung)
+- poppler-utils (für PDF-Unterstützung)
+- ffmpeg (für Videos)
 
 ## Kompilieren
 

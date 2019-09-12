@@ -270,6 +270,46 @@ static void finished_extract_meta_job(struct upload_job *upload_job)
 		} else if (case_starts(line, "duration=")) {
 			if (scan_double(&line[strlen("duration=")], &dbl_val) > 0)
 				upload_job->duration = dbl_val*1000L;
+		} else if (case_starts(line, "Page")) {
+			// Parse output of pdfinfo
+			// The line looks like this:
+			// "Page    1 size: 612 x 792 pts (letter)"
+			size_t i = 0;
+			size_t delta;
+			double w,h;
+			i += strlen("Page");
+			i += scan_whiteskip(&line[i]);
+
+			if (line[i++] != '1')
+				continue;
+
+			i += scan_whiteskip(&line[i]);
+
+			if (!case_starts(&line[i], "size:"))
+				continue;
+			i += strlen("size:");
+
+			i += scan_whiteskip(&line[i]);
+
+			// Width
+			i += (delta = scan_double(&line[i], &w));
+			if (delta <= 0)
+				continue;
+
+			i += scan_whiteskip(&line[i]);
+
+			if (line[i++] != 'x')
+				continue;
+
+			i += scan_whiteskip(&line[i]);
+			
+			// Height
+			i += (delta = scan_double(&line[i], &h));
+			if (delta <= 0)
+				continue;
+
+			upload_job->width = w;
+			upload_job->height = h;
 		}
 	}
 
@@ -331,10 +371,12 @@ static void extract_meta_command(const char *file, const char *mime_type, char *
 	if (case_starts(mime_type, "video/")) {
 		i += fmt_str(&command[i], "ffprobe -v error -show_entries format=duration:stream=index,codec_types,width,height -of default=noprint_wrappers=1 ");
 		i += fmt_str(&command[i], file);
+	} else if (case_equals(mime_type, "application/pdf")) {
+		i += fmt_str(&command[i], "pdfinfo -f 1 -l 1 ");
+		i += fmt_str(&command[i], file);
 	} else {
 		int multipage=0;
-		if (case_equals(mime_type, "image/gif") ||
-		    case_equals(mime_type, "application/pdf"))
+		if (case_equals(mime_type, "image/gif"))
 			multipage=1;
 		i += fmt_str(&command[i], MAGICK_COMMAND " identify -format 'width=%w\\nheight=%h\\n' ");
 		i += fmt_str(&command[i], file);
@@ -367,9 +409,19 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		thumbnail_command("-", original_width, original_height, "image/jpeg", thumbnail_base, ext, &command[i]);
 		// Subcommand already added \0 at the end. Exit early so we don't truncate the command.
 		return;
+	} else if (case_equals(mime_type, "application/pdf")) {
+		// pdftoppm is part of poppler-utils
+		i += fmt_str(&command[i], "pdftocairo -singlefile -png -scale-to ");
+		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
+		i += fmt_str(&command[i], " ");
+		i += fmt_str(&command[i], file);
+		i += fmt_str(&command[i], " - | ");
+		// Call recursively to generate final png thumbnail
+		thumbnail_command("-", original_width, original_height, "image/png", thumbnail_base, ext, &command[i]);
+		// Subcommand already added \0 at the end. Exit early so we don't truncate the command.
+		return;
 	} else if (case_equals(mime_type, "image/png") ||
-	           case_equals(mime_type, "image/gif") ||
-	           case_equals(mime_type, "application/pdf")) {
+	           case_equals(mime_type, "image/gif") ) {
 		*ext = ".png";
 		strcat(thumb_file, *ext);
 
@@ -382,9 +434,6 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		if (multipage)
 			i += fmt_str(&command[i], "[0]");
 
-		if (case_equals(mime_type, "application/pdf"))
-			i += fmt_str(&command[i], " -flatten");
-
 		i += fmt_str(&command[i], " -resize ");
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
 		i += fmt_str(&command[i], "x");
@@ -392,10 +441,8 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		i += fmt_str(&command[i], "\\> -quality 0 -profile data/sRGB.icc -strip ");
 		i += fmt_str(&command[i], thumb_file);
 
-		i += fmt_str(&command[i], " && (");
-
 		// Imagemagick's PNG8 capabilities suck, so use pngquant to further optimize the size (optional)
-		i += fmt_str(&command[i], "pngquant -f 32 ");
+		i += fmt_str(&command[i], " && (pngquant -f 32 ");
 		i += fmt_str(&command[i], thumb_file);
 		i += fmt_str(&command[i], " -o ");
 		i += fmt_str(&command[i], thumb_file);
