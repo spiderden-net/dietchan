@@ -31,8 +31,8 @@ static void upload_job_error(struct upload_job *upload_job, int status, char *me
 
 static void extract_meta_command(const char *file, const char *mime_type, char *command);
 static void thumbnail_command(const char *file, int64 original_width, int64 original_height,
-                              const char *mime_type, const char *thumbnail_base,
-                              const char **ext, char *command);
+                              double original_duration, const char *mime_type,
+                              const char *thumbnail_base, const char **ext, char *command);
 
 void upload_job_init(struct upload_job *upload_job, char *upload_dir)
 {
@@ -335,7 +335,8 @@ static void start_thumbnail_job(struct upload_job *upload_job)
 	char buf[4096];
 	const char *ext;
 
-	thumbnail_command(upload_job->file_path, upload_job->width, upload_job->height, upload_job->mime_type, thumbnail_base, &ext, buf);
+	thumbnail_command(upload_job->file_path, upload_job->width, upload_job->height, upload_job->duration,
+	                  upload_job->mime_type, thumbnail_base, &ext, buf);
 
 	upload_job->thumb_path = malloc(strlen(thumbnail_base) + strlen(ext));
 	strcpy(upload_job->thumb_path, thumbnail_base);
@@ -387,7 +388,7 @@ static void extract_meta_command(const char *file, const char *mime_type, char *
 }
 
 static void thumbnail_command(const char *file, int64 original_width, int64 original_height,
-                              const char *mime_type, const char *thumbnail_base,
+                              double original_duration, const char *mime_type, const char *thumbnail_base,
                               const char **ext, char *command)
 {
 	*ext = "";
@@ -400,13 +401,22 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 	size_t i=0;
 
 	if (case_starts(mime_type, "video/")) {
-		// Hardcoded at 1 sec right now
-		i += fmt_str(&command[i], "ffmpeg -ss 00:00:01.800 -i ");
+		// Determine timestamp to use for thumbnail.
+		// 1.8 seconds seems to work alright for most videos.
+		// For very short clips we have to use a smaller value.
+		if (original_duration >= 5000)
+			i += fmt_str(&command[i], "ffmpeg -ss 00:00:01.800 -i ");
+		else if (original_duration >= 1000)
+			i += fmt_str(&command[i], "ffmpeg -ss 00:00:00.500 -i ");
+		else if (original_duration >= 100)
+			i += fmt_str(&command[i], "ffmpeg -ss 00:00:00.050 -i ");
+		else
+			i += fmt_str(&command[i], "ffmpeg -i ");
 		i += fmt_str(&command[i], file);
 		i += fmt_str(&command[i], " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec bmp - ");
 		i += fmt_str(&command[i], " | ");
 		// Call recursively to generate jpg thumbnail from bmp
-		thumbnail_command("-", original_width, original_height, "image/jpeg", thumbnail_base, ext, &command[i]);
+		thumbnail_command("-", original_width, original_height, original_duration, "image/jpeg", thumbnail_base, ext, &command[i]);
 		// Subcommand already added \0 at the end. Exit early so we don't truncate the command.
 		return;
 	} else if (case_equals(mime_type, "application/pdf")) {
@@ -417,7 +427,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		i += fmt_str(&command[i], file);
 		i += fmt_str(&command[i], " - | ");
 		// Call recursively to generate final png thumbnail
-		thumbnail_command("-", original_width, original_height, "image/png", thumbnail_base, ext, &command[i]);
+		thumbnail_command("-", original_width, original_height, original_duration, "image/png", thumbnail_base, ext, &command[i]);
 		// Subcommand already added \0 at the end. Exit early so we don't truncate the command.
 		return;
 	} else if (case_equals(mime_type, "image/png") ||
