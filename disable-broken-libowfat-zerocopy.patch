@@ -1,0 +1,11 @@
+--- a/io/iob_send.c	2017-11-24 17:21:10.000000000 +0000
++++ b/io/iob_send.c	2019-12-07 22:27:54.220196028 +0000
+@@ -122,6 +122,8 @@
+ #include "io_internal.h"
+ #include "iob_internal.h"
+ 
++#undef MSG_ZEROCOPY
++
+ int64 iob_send(int64 s,io_batch* b) {
+   iob_entry* e,* last;
+   io_entry* E;

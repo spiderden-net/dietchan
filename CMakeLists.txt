@@ -53,7 +53,7 @@ IF ("${CMAKE_SYSTEM}" MATCHES "Linux")
 		CONFIGURE_COMMAND ""
 		UPDATE_COMMAND ""
 		TEST_COMMAND ""
-		PATCH_COMMAND ""
+		PATCH_COMMAND patch -p1 -d ${PROJECT_SOURCE_DIR}/src/libowfat -i ${PROJECT_SOURCE_DIR}/disable-broken-libowfat-zerocopy.patch
 		BUILD_COMMAND DIETHOME=${BUILD_ROOT} make DIET=${BUILD_ROOT}/bin/diet
 		INSTALL_COMMAND make DESTDIR=${BUILD_ROOT} install
 	)

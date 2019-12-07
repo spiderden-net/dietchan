@@ -201,6 +201,9 @@ void read_data(int64 s, context *ctx, int64 bytes_limit)
 		}
 
 		if (ret <= 0) {
+			if (ret < 0) {
+				perror("context_read < 0");
+			}
 			// Important:
 			// Without the call to io_dontwantread, we get the close notification again and
 			// again. This leads to the reference count being decremented multiple times

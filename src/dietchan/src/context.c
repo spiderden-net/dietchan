@@ -120,7 +120,7 @@ void context_flush(context *ctx)
 	} while (ret > 0);
 
 	if (ret == -3) {
-		//perror("iob_send");
+		perror("iob_send");
 		ctx->error = 1;
 		io_dontwantwrite(ctx->fd);
 		shutdown(ctx->fd, SHUT_RDWR);
