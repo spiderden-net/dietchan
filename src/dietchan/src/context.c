@@ -56,7 +56,9 @@ static struct chunk* get_chunk()
 void context_init(context *ctx, int fd)
 {
 	byte_zero(ctx, sizeof(context));
-	ctx->refcount = 1;
+	// Refcount == 2 because we have a read and a write end and we only want to finalize
+	// the structure after *both* ends have been closed.
+	ctx->refcount = 2;
 	ctx->fd = fd;
 	ctx->batch = iob_new(10);
 }
@@ -122,6 +124,9 @@ void context_flush(context *ctx)
 		ctx->error = 1;
 		io_dontwantwrite(ctx->fd);
 		shutdown(ctx->fd, SHUT_RDWR);
+
+		// Write end was closed -> unref structure
+		context_unref(ctx);
 		return;
 	}
 
