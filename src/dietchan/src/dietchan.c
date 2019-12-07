@@ -166,8 +166,8 @@ void accept_connections(int64 s, struct listener *listener, int limit)
 			case IP_V4: a = socket_accept4(s, ip, &port); break;
 			case IP_V6: a = socket_accept6(s, ip, &port, &scope); break;
 		}
-		if (a==-1)
-			io_eagain_read(s);
+		//if (a==-1)
+		//	io_eagain_read(s);
 		if (a<0) return;
 
 		io_nonblock(a);
