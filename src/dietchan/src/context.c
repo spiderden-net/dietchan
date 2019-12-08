@@ -184,6 +184,9 @@ void context_flush(context *ctx)
 			shutdown(ctx->fd, SHUT_RDWR);
 			io_dontwantwrite(ctx->fd);
 		#endif
+
+		// Write end was closed -> unref structure
+		context_unref(ctx);
 	}
 }
 
