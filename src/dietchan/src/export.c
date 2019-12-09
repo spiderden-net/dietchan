@@ -109,7 +109,7 @@ void export()
 		} else {
 			printf("\n");
 		}
-		printf("    }%s\n", user_next_user(user)?",":""); // /user
+		printf("    }%s\n", user_next_user(user)?",":"");
 	}
 	printf("  ],\n"); // /users
 
@@ -138,9 +138,26 @@ void export()
 		printf("      \"reason\": \""); print_esc(ban_reason(ban)); printf("\",\n");
 		printf("      \"mod\": %" PRIu64 ",\n", ban_mod(ban));
 		printf("      \"mod_name\": \""); print_esc(ban_mod_name(ban)); printf("\"\n");
-		printf("    }%s\n", ban_next_ban(ban)?",":""); // /ban
+		printf("    }%s\n", ban_next_ban(ban)?",":"");
 	}
-	printf("  ]\n"); // /bans
+	printf("  ],\n"); // /bans
+
+	printf("  \"reports\": [\n");
+	for (struct report *report = master_first_report(master); report; report = report_next_report(report)) {
+		printf("    {\n");
+		printf("      \"id\": %" PRIu64 ",\n", report_id(report));
+		printf("      \"post_id\": %" PRIu64 ",\n", report_post_id(report));
+		printf("      \"thread_id\": %" PRIu64 ",\n", report_thread_id(report));
+		printf("      \"board_id\": %" PRIu64 ",\n", report_board_id(report));
+		printf("      \"type\": %d,\n", (int)report_type(report));
+		buf[fmt_ip(buf, &report_reporter_ip(report))] = '\0';
+		printf("      \"reporter_ip\": \"%s\",\n", buf);
+		printf("      \"reporter_uid\": %" PRIu64 ",\n", report_reporter_uid(report));
+		printf("      \"timestamp\": %" PRIu64 ",\n", report_timestamp(report));
+		printf("      \"comment\": \""); print_esc(report_comment(report)); printf("\",\n");
+		printf("    }%s\n", report_next_report(report)?",":"");
+	}
+	printf("  ]\n"); // /reports
 
 	printf("}");
 }

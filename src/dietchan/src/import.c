@@ -649,6 +649,71 @@ static int parse_ban(void *unused)
 	}
 }
 
+static int parse_report(void *unused)
+{
+	struct report *report = report_new();
+	struct report *prev = master_last_report(master);
+	if (!master_first_report(master))
+		master_set_first_report(master, report);
+	master_set_last_report(master, report);
+	report_set_prev_report(report, prev);
+	if (prev)
+		report_set_next_report(prev, report);
+
+	while (1) {
+		struct json_token token = json_get_token();
+		if (token.type == TOK_OBJ_END)
+			return 0;
+		if (token.type != TOK_STRING) {
+			free_token(&token);
+			return -1;
+		}
+
+		EXPECT(TOK_COLON);
+
+		struct json_token val = {0};
+		if (str_equal(token.string, "id")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_id(report, val.number);
+			if (report_id(report) > master_report_counter(master))
+				master_set_report_counter(master, report_id(report));
+		} else if (str_equal(token.string, "post_id")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_post_id(report, val.number);
+		} else if (str_equal(token.string, "thread_id")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_thread_id(report, val.number);
+		} else if (str_equal(token.string, "board_id")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_board_id(report, val.number);
+		} else if (str_equal(token.string, "type")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_type(report, val.number);
+		} else if (str_equal(token.string, "reporter_ip")) {
+			EXPECT2(TOK_STRING, &val);
+			struct ip ip;
+			scan_ip(val.string, &ip);
+			report_set_reporter_ip(report, ip);
+		} else if (str_equal(token.string, "reporter_uid")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_reporter_uid(report, val.number);
+		} else if (str_equal(token.string, "timestamp")) {
+			EXPECT2(TOK_NUMBER, &val);
+			report_set_timestamp(report, val.number);
+		} else if (str_equal(token.string, "comment")) {
+			EXPECT2(TOK_STRING, &val);
+			report_set_comment(report, val.string);
+		} else {
+			val = json_get_token();
+			json_skip_structure(&val);
+		}
+		free_token(&val);
+
+		free_token(&token);
+	}
+
+}
+
 
 int import()
 {
@@ -679,6 +744,10 @@ int import()
 		} else if (str_equal(token.string, "bans")) {
 			EXPECT(TOK_ARRAY_BEGIN);
 			if (parse_array(parse_ban, 0) == -1)
+				return -1;
+		} else if (str_equal(token.string, "reports")) {
+			EXPECT(TOK_ARRAY_BEGIN);
+			if (parse_array(parse_report, 0) == -1)
 				return -1;
 		} else {
 			val = json_get_token();
