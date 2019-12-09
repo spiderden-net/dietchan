@@ -67,7 +67,7 @@ static ssize_t safe_read(int fd, void *buf, size_t n)
 	size_t want_read = n;
 	size_t off = 0;
 	while (want_read > 0) {
-		size_t delta = read(fd, ((char*)buf)+off, want_read);
+		ssize_t delta = read(fd, ((char*)buf)+off, want_read);
 		if (delta < 0 && errno == EINTR)
 			continue;
 		if (delta == 0)
@@ -85,7 +85,7 @@ static ssize_t safe_write(int fd, void *buf, size_t n)
 	size_t want_write = n;
 	size_t off = 0;
 	while (want_write > 0) {
-		size_t delta = write(fd, ((char*)buf)+off, want_write);
+		ssize_t delta = write(fd, ((char*)buf)+off, want_write);
 		if (delta < 0 && errno == EINTR)
 			continue;
 		if (delta == 0)
@@ -98,17 +98,16 @@ static ssize_t safe_write(int fd, void *buf, size_t n)
 	return off;
 }
 
-static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
+static int copy_data(int src_fd, int dst_fd, size_t num_bytes, char *buf, size_t buf_size)
 {
 	size_t remaining = num_bytes;
-	char buf[64*1024];
 
 	while (remaining > 0) {
 		// Read into buffer
 		size_t buffered = 0;
 		size_t want_read = remaining;
-		if (want_read > sizeof(buf))
-			want_read = sizeof(buf);
+		if (want_read > buf_size)
+			want_read = buf_size;
 		while (want_read > 0) {
 			ssize_t actually_read = safe_read(src_fd, buf+buffered, want_read);
 			if (actually_read <= 0)
@@ -121,7 +120,7 @@ static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
 		size_t consumed = 0;
 		size_t want_write = buffered;
 		while (want_write > 0) {
-			ssize_t actually_written =  safe_write(dst_fd, buf+consumed, want_write);
+			ssize_t actually_written = safe_write(dst_fd, buf+consumed, want_write);
 			if (actually_written <= 0)
 				return -1;
 			consumed   += actually_written;
@@ -496,7 +495,7 @@ void db_invalidate_region(db_obj *db, void *ptr, const uint64 size)
 
 	db->changed = 1;
 
-	size_t len=array_length(&db->dirty_regions, sizeof(db_region_boundary));
+	size_t len = array_length(&db->dirty_regions, sizeof(db_region_boundary));
 	db_region_boundary *start = array_allocate(&db->dirty_regions, sizeof(db_region_boundary), len);
 	db_region_boundary *end = array_allocate(&db->dirty_regions, sizeof(db_region_boundary), len+1);
 
@@ -613,6 +612,8 @@ fail:
 
 static int db_replay_journal(db_obj *db)
 {
+	size_t buf_size = 64*1024;
+	void *buf = malloc(buf_size);
 	off_t old_db_size = lseek(db->fd, 0, SEEK_END);
 	if (old_db_size < 0)
 		goto fail;
@@ -641,7 +642,7 @@ static int db_replay_journal(db_obj *db)
 			if (lseek(db->fd, _ptr, SEEK_SET) < 0)
 				goto fail;
 
-			if (copy_data(db->journal_fd, db->fd, size) < 0)
+			if (copy_data(db->journal_fd, db->fd, size, buf, buf_size) < 0)
 				goto fail;
 		}
 	}
@@ -664,10 +665,12 @@ static int db_replay_journal(db_obj *db)
 	}
 
 	//printf("success!!!!!\n");
+	free(buf);
 	return 0;
 
 fail:
 	perror("FAIL FAIL FAIL !!!!! Could not replay journal");
+	free(buf);
 	return -1;
 }
 
