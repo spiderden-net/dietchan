@@ -32,9 +32,9 @@ struct json_token {
 };
 
 static array buf = {0};
+static size_t buf_len = 0;
 static size_t off=0;
 static int fd=0;
-
 
 void free_token(struct json_token *token)
 {
@@ -44,37 +44,23 @@ void free_token(struct json_token *token)
 	}
 }
 
-
 struct json_token json_get_token()
 {
 	struct json_token token = {0};
 
-	array_chop_beginning(&buf, off);
-	off = 0;
+	char tmp[4096];
+	char *b;
+	ssize_t bytes_read;
 
 	while (1) {
-		char tmp[4096];
-		ssize_t bytes_read=read(fd, tmp, sizeof(buf));
-		if (bytes_read < 0)
-			break;
-		size_t len=array_bytes(&buf);
-		if (len>0) {
-			array_truncate(&buf, 1, len-1);
-		}
-		array_catb(&buf, tmp, bytes_read);
+		b = array_start(&buf);
 
-		// Add an additional zero when EOF to simplify checks below
-		if (bytes_read == 0)
-			array_cat0(&buf);
-
-		len = array_bytes(&buf);
-		array_cat0(&buf);
-
-		char *b=array_start(&buf);
+		if (off >= buf_len)
+			goto read_more;
 
 		off += scan_whiteskip(&b[off]);
-		if (off >= len)
-			continue;
+		if (off >= buf_len)
+			goto read_more;
 
 		switch (b[off]) {
 			case '{':
@@ -95,17 +81,12 @@ struct json_token json_get_token()
 				return token;
 			case '"': {
 				token.type = TOK_STRING;
-				++off;
 				size_t dest_len=0;
-				// Uuuurgh... scan_jsonescape doesn't (necessarily) terminate on \0
-				//b[len] = '"';
-				//size_t scanned = scan_jsonescape(&b[off], 0, &dest_len);
-				// URGH libowfat's scan_jsonescape is completely broken. Use our own function.
-				size_t scanned = scan_json_str(&b[off], 0, &dest_len);
-				if (off+scanned >= len)
-					continue;
+				size_t scanned = scan_json_str(&b[off+1], 0, &dest_len) + 1;
+				if (off+scanned >= buf_len)
+					goto read_more;
 				token.string = malloc(scanned+1);
-				token.string[scan_json_str(&b[off], token.string, &dest_len)] = '\0';
+				token.string[scan_json_str(&b[off+1], token.string, &dest_len)] = '\0';
 				off += scanned;
 				return token;
 			}
@@ -119,18 +100,40 @@ struct json_token json_get_token()
 			case '-': case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
 				token.type = TOK_NUMBER;
 				size_t scanned = scan_int64(&b[off], &token.number);
-				if (off+scanned >= len)
-					continue;
+				if ((scanned==0) || off+scanned >= buf_len)
+					goto read_more;
 				off += scanned;
 				return token;
 			}
+			case '\0':
+				token.type = TOK_EOF;
+				return token;
 			default:
 				token.type = TOK_ERROR;
 				return token;
 		}
+
+read_more:
+
+		bytes_read = read(fd, tmp, sizeof(buf));
+		if (bytes_read < 0) {
+			token.type = TOK_ERROR;
+			return token;
+		}
+
+		if (buf_len>0) // Remove added \0 byte
+			array_truncate(&buf, 1, buf_len);
+		array_chop_beginning(&buf, off);
+		off = 0;
+		array_catb(&buf, tmp, bytes_read);
+
+		// Add an additional zero when EOF
+		if (bytes_read == 0)
+			array_cat0(&buf);
+
+		buf_len = array_bytes(&buf);
+		array_cat0(&buf);
 	}
-	token.type = TOK_EOF;
-	return token;
 }
 
 static int parse_array(int (*foreach)(void *extra), void *extra)
@@ -190,14 +193,17 @@ static void json_skip_structure(const struct json_token *token)
 	{ \
 		struct json_token tok = json_get_token(); \
 		free_token(&tok); \
-		if (tok.type != token_type) \
+		if (tok.type != token_type) { \
+			printf("parse error: %d\n", __LINE__); \
 			return -1; \
+		} \
 	}
 
 #define EXPECT2(token_type, token) \
 	{ \
 		*(token) = json_get_token(); \
 		if ((token)->type != token_type) { \
+			printf("parse error: %d\n", __LINE__); \
 			free_token(token); \
 			return -1; \
 		} \
