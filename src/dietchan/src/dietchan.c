@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+
 #include <libowfat/socket.h>
 #include <libowfat/ip4.h>
 #include <libowfat/io.h>
@@ -357,6 +358,7 @@ int main(int argc, char* argv[])
 
 	if (optind < argc) {
 		if (case_equals(argv[optind], "import")) {
+			unlink("imported_db");
 			if (open_database("imported_db", 0) < 0)
 				return -1;
 
