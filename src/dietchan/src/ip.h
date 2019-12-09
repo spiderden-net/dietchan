@@ -31,4 +31,9 @@ int ip_eq(const struct ip *a, const struct ip *b);
 size_t scan_ip(const char *src, struct ip *ip);
 size_t fmt_ip(char *dest, const struct ip *ip);
 
+size_t scan_ip_range(const char *src, struct ip_range *range);
+size_t fmt_ip_range(char *dest, const struct ip_range *range);
+
+size_t scan_ip_range_with_default(const char *src, struct ip_range *range);
+
 #endif // IP_H

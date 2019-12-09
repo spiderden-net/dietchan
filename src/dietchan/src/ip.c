@@ -3,6 +3,8 @@
 #include <libowfat/byte.h>
 #include <libowfat/ip4.h>
 #include <libowfat/ip6.h>
+#include <libowfat/scan.h>
+#include <libowfat/fmt.h>
 
 int ip_in_range(const struct ip_range *range, const struct ip *ip)
 {
@@ -131,4 +133,40 @@ size_t fmt_ip(char *dest, const struct ip *ip)
 	case IP_V6: return fmt_ip6(dest, &ip->bytes[0]);
 	default:    return 0;
 	}
+}
+
+size_t scan_ip_range(const char *src, struct ip_range *range)
+{
+	size_t consumed = 0;
+	size_t total = 0;
+	total += (consumed = scan_ip(src, &range->ip));
+	if (consumed == 0)
+		return 0;
+	if (src[total++] != '/')
+		return 0;
+	total += (consumed = scan_int(&src[total], &range->range));
+	if (consumed == 0)
+		return 0;
+	return total;
+}
+
+size_t fmt_ip_range(char *dest, const struct ip_range *range)
+{
+	size_t i = 0;
+	i += fmt_ip(dest?&dest[i]:NULL, &range->ip);
+	if (dest)
+		dest[i] = '/';
+	++i;
+	i += fmt_int(dest?&dest[i]:NULL, range->range);
+	return i;
+}
+
+size_t scan_ip_range_with_default(const char *src, struct ip_range *range)
+{
+	size_t result = scan_ip_range(src, range);
+	if (!result && (result = scan_ip(src, &range->ip))) {
+		const int ranges[] = {[IP_V4] = 32, [IP_V6] = 64};
+		range->range = ranges[range->ip.version];
+	}
+	return result;
 }

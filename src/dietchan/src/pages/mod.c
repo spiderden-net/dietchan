@@ -307,28 +307,11 @@ static int  mod_page_finish (http_context *http)
 
 			struct ip_range range = {0};
 			int d = 0;
-			if (d = scan_ip4(&s[i], &range.ip.bytes[0])) {
-				range.ip.version = IP_V4;
-				range.range = 32;
-			} else if (d = scan_ip6(&s[i], &range.ip.bytes[0])) {
-				range.ip.version = IP_V6;
-				range.range = 64;
-			} else {
+			i += (d = scan_ip_range_with_default(&s[i], &range));
+			if (d == 0) {
 				parse_error_ip = 1;
 				i += scan_nonwhiteskip(&s[i]);
 				continue;
-			}
-
-			i += d;
-
-			if (s[i] == '/') {
-				i++;
-				i += (d=scan_uint(&s[i], &range.range));
-				if (!d) {
-					parse_error_ip = 1;
-					i += scan_nonwhiteskip(&s[i]);
-					continue;
-				}
 			}
 
 			size_t count = array_length(&ranges, sizeof(struct ip_range));

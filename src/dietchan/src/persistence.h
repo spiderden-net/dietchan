@@ -470,7 +470,7 @@ enum ban_flags {
 };
 
 struct ban {
-                  struct ip_range range;
+	              struct ip_range range;
 	              uchar         flags;
 	              uchar         type;
 	              uchar         target;
