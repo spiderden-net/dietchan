@@ -757,6 +757,6 @@ int import()
 
 		free_token(&token);
 	}
-	printf("Success\n");
 	commit();
+	printf("Success\n");
 }

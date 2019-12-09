@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/file.h>
+#include <errno.h>
 
 typedef uint32 journal_entry_type;
 
@@ -60,6 +61,96 @@ static void* db_journal_thread(void *arg);
 #define MAP_SIZE ((sizeof(long)==8)? \
                   (1024UL*1024UL*1024UL):   /* 1 GB... ought to be enough for anyone */  \
                   (256UL*1024UL*1024UL))    /* 256 MB... use this for 32 bit systems */
+
+static ssize_t safe_read(int fd, void *buf, size_t n)
+{
+	size_t want_read = n;
+	size_t off = 0;
+	while (want_read > 0) {
+		size_t delta = read(fd, ((char*)buf)+off, want_read);
+		if (delta < 0 && errno == EINTR)
+			continue;
+		if (delta == 0)
+			break;
+		if (delta < 0)
+			return (off > 0)?off:-1;
+		want_read -= delta;
+		off += delta;
+	}
+	return off;
+}
+
+static ssize_t safe_write(int fd, void *buf, size_t n)
+{
+	size_t want_write = n;
+	size_t off = 0;
+	while (want_write > 0) {
+		size_t delta = write(fd, ((char*)buf)+off, want_write);
+		if (delta < 0 && errno == EINTR)
+			continue;
+		if (delta == 0)
+			break;
+		if (delta < 0)
+			return (off > 0)?off:-1;
+		want_write -= delta;
+		off += delta;
+	}
+	return off;
+}
+
+static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
+{
+	size_t remaining = num_bytes;
+	char buf[64*1024];
+
+	while (remaining > 0) {
+		// Read into buffer
+		size_t buffered = 0;
+		size_t want_read = remaining;
+		if (want_read > sizeof(buf))
+			want_read = sizeof(buf);
+		while (want_read > 0) {
+			ssize_t actually_read = safe_read(src_fd, buf+buffered, want_read);
+			if (actually_read <= 0)
+				return -1;
+			buffered   += actually_read;
+			want_read  -= actually_read;
+		}
+
+		// Write buffer to destination
+		size_t consumed = 0;
+		size_t want_write = buffered;
+		while (want_write > 0) {
+			ssize_t actually_written =  safe_write(dst_fd, buf+consumed, want_write);
+			if (actually_written <= 0)
+				return -1;
+			consumed   += actually_written;
+			want_write -= actually_written;
+		}
+
+		remaining -= consumed;
+	}
+	return 0;
+}
+
+static int safe_fsync(int fd)
+{
+	int ret = 0;
+	do {
+		ret = fsync(fd);
+	}  while (ret < 0 && errno == EINTR);
+	return ret;
+}
+
+static int safe_ftruncate(int fd, off_t length)
+{
+	int ret = 0;
+	do {
+		ret = ftruncate(fd, length);
+	}  while (ret < 0 && errno == EINTR);
+	return ret;
+
+}
 
 db_obj* db_open(const char *file)
 {
@@ -419,7 +510,7 @@ void db_invalidate_region(db_obj *db, void *ptr, const uint64 size)
 static void db_init(db_obj *db)
 {
 	uint64 size = sizeof(db_header);
-	ftruncate(db->fd, size);
+	safe_ftruncate(db->fd, size);
 
 	db_begin_transaction(db);
 
@@ -455,7 +546,7 @@ static void db_grow(db_obj *db)
 	if (order == 0) {
 		uint64 s = bucket_size(order-1);
 		new_size = sizeof(db_header)+2*s;
-		ftruncate(db->fd, sizeof(db_header) + 2*s);
+		safe_ftruncate(db->fd, sizeof(db_header) + 2*s);
 
 		db_bucket *bucket=(db_bucket*)db->bucket0;
 		bucket->order = 0;
@@ -464,7 +555,7 @@ static void db_grow(db_obj *db)
 	} else {
 		uint64 s = bucket_size(order-1);
 		new_size = sizeof(db_header)+2*s;
-		ftruncate(db->fd, new_size);
+		safe_ftruncate(db->fd, new_size);
 
 		db_bucket *bucket = (db_bucket*)(db->bucket0 + s);
 		bucket->order = order-1;
@@ -493,18 +584,18 @@ static int db_check_journal(db_obj *db)
 	int commit = 0;
 
 	while (1) {
-		consumed = read(db->journal_fd, &type, sizeof(journal_entry_type));
+		consumed = safe_read(db->journal_fd, &type, sizeof(journal_entry_type));
 		if (consumed == 0)
 			break;
-		if (consumed < sizeof(journal_entry_type))
+		if (consumed < (ssize_t)sizeof(journal_entry_type))
 			goto fail;
 
 		if (type == JOURNAL_WRITE) {
 			commit = -1;
-			if (read(db->journal_fd, &_ptr, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
+			if (safe_read(db->journal_fd, &_ptr, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
 				goto fail;
 
-			if (read(db->journal_fd, &size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
+			if (safe_read(db->journal_fd, &size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
 				goto fail;
 
 			if (lseek(db->journal_fd, size, SEEK_CUR) < 0)
@@ -518,41 +609,6 @@ static int db_check_journal(db_obj *db)
 
 fail:
 	return -1;
-}
-
-static int copy_data(int src_fd, int dst_fd, size_t num_bytes)
-{
-	size_t remaining = num_bytes;
-	char buf[64*1024];
-
-	while (remaining > 0) {
-		// Read into buffer
-		size_t buffered = 0;
-		size_t want_read = remaining;
-		if (want_read > sizeof(buf))
-			want_read = sizeof(buf);
-		while (want_read > 0) {
-			ssize_t actually_read = read(src_fd, buf+buffered, want_read);
-			if (actually_read <= 0)
-				return -1;
-			buffered   += actually_read;
-			want_read  -= actually_read;
-		}
-
-		// Write buffer to destination
-		size_t consumed = 0;
-		size_t want_write = buffered;
-		while (want_write > 0) {
-			ssize_t actually_written =  write(dst_fd, buf+consumed, want_write);
-			if (actually_written <= 0)
-				return -1;
-			consumed   += actually_written;
-			want_write -= actually_written;
-		}
-
-		remaining -= consumed;
-	}
-	return 0;
 }
 
 static int db_replay_journal(db_obj *db)
@@ -569,17 +625,17 @@ static int db_replay_journal(db_obj *db)
 	lseek(db->journal_fd, 0, SEEK_SET);
 
 	while (1) {
-		consumed = read(db->journal_fd, &type, sizeof(journal_entry_type));
+		consumed = safe_read(db->journal_fd, &type, sizeof(journal_entry_type));
 		if (consumed == 0)
 			break;
 		if (consumed < (ssize_t)sizeof(journal_entry_type))
 			goto fail;
 
 		if (type == JOURNAL_WRITE) {
-			if (read(db->journal_fd, &_ptr, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
+			if (safe_read(db->journal_fd, &_ptr, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
 				goto fail;
 
-			if (read(db->journal_fd, &size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
+			if (safe_read(db->journal_fd, &size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
 				goto fail;
 
 			if (lseek(db->fd, _ptr, SEEK_SET) < 0)
@@ -596,12 +652,12 @@ static int db_replay_journal(db_obj *db)
 
 	assert (new_db_size >= old_db_size);
 
-	if (fsync(db->fd) == 0) {
+	if (safe_fsync(db->fd) == 0) {
 		if (lseek(db->journal_fd, 0, SEEK_SET) < 0)
 			goto fail;
-		if (ftruncate(db->journal_fd, 0) < 0)
+		if (safe_ftruncate(db->journal_fd, 0) < 0)
 			goto fail;
-		if (fsync(db->journal_fd) < 0)
+		if (safe_fsync(db->journal_fd) < 0)
 			goto fail;
 	} else {
 		goto fail;
@@ -706,11 +762,11 @@ static void* db_journal_thread(void *arg)
 				db_read_log(db, &region_start, sizeof(db_ptr));
 				db_read_log(db, &region_size, sizeof(uint64));
 
-				if (write(db->journal_fd, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
+				if (safe_write(db->journal_fd, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
 					goto fail;
-				if (write(db->journal_fd, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
+				if (safe_write(db->journal_fd, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
 					goto fail;
-				if (write(db->journal_fd, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
+				if (safe_write(db->journal_fd, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
 					goto fail;
 
 				size_t remaining = region_size;
@@ -719,7 +775,7 @@ static void* db_journal_thread(void *arg)
 					if (chunk > buf_size)
 						chunk = buf_size;
 					db_read_log(db, buf, chunk);
-					if (write(db->journal_fd, buf, chunk) < chunk)
+					if (safe_write(db->journal_fd, buf, chunk) < chunk)
 						goto fail;
 					remaining -= chunk;
 				}
@@ -737,13 +793,13 @@ static void* db_journal_thread(void *arg)
 #endif
 
 
-		if (fsync(db->journal_fd) == -1) {
+		if (safe_fsync(db->journal_fd) == -1) {
 			perror("FAIL, COULD NOT FSYNC");
 			goto fail;
 		}
 		
 		journal_entry_type type = JOURNAL_COMMIT;
-		write(db->journal_fd, &type, sizeof(journal_entry_type));
+		safe_write(db->journal_fd, &type, sizeof(journal_entry_type));
 		
 		if (db_replay_journal(db) == -1)
 			goto fail;
@@ -817,7 +873,7 @@ static ssize_t db_write_log(db_obj *db, const void *data, size_t length)
 	return offset;
 
 #else
-	return write(db->journal_fd, data, length);
+	return safe_write(db->journal_fd, data, length);
 #endif
 }
 
@@ -878,7 +934,7 @@ void db_commit(db_obj *db)
 	assert(nesting == 0);
 
 #ifndef ASYNC_LOG
-	if (fsync(db->journal_fd) == -1) {
+	if (safe_fsync(db->journal_fd) == -1) {
 		perror("FAIL, COULD NOT FSYNC");
 		return;
 	}
@@ -888,6 +944,11 @@ void db_commit(db_obj *db)
 	db_write_log(db, &type, sizeof(journal_entry_type));
 
 #ifndef ASYNC_LOG
+	if (safe_fsync(db->journal_fd) == -1) {
+		perror("FAIL, COULD NOT FSYNC");
+		return;
+	}
+
 	if (db_replay_journal(db) == -1)
 		goto fail;
 #endif
@@ -899,5 +960,5 @@ void db_commit(db_obj *db)
 
 fail:
 	perror("Error writing journal");
-	return;
+	exit(-1);
 }

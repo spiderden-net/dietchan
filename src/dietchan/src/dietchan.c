@@ -359,6 +359,7 @@ int main(int argc, char* argv[])
 	if (optind < argc) {
 		if (case_equals(argv[optind], "import")) {
 			unlink("imported_db");
+			unlink("imported_db.journal");
 			if (open_database("imported_db", 0) < 0)
 				return -1;
 
