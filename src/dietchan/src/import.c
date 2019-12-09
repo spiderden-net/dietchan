@@ -758,5 +758,7 @@ int import()
 		free_token(&token);
 	}
 	commit();
+	db_shutdown(db);
+
 	printf("Success\n");
 }

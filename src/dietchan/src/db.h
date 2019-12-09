@@ -55,6 +55,7 @@ typedef struct db_obj {
 	int              log_full;
 	uint64           produced_transactions;
 	uint64           consumed_transactions;
+	int              shutting_down;
 	pthread_t        log_thread;
 #endif
 
@@ -74,5 +75,9 @@ void    db_begin_transaction(db_obj *db);
 void    db_invalidate(db_obj *db, void *ptr);
 void    db_invalidate_region(db_obj *db, void *ptr, const uint64 size);
 void    db_commit(db_obj *db);
+
+// This is only necessary for ASYNC_LOG mode. Ensure that in-flight data
+// and the journal is flushed to disk.
+void    db_shutdown(db_obj *db);
 
 #endif // DB_H

@@ -737,6 +737,10 @@ static void* db_journal_thread(void *arg)
 		pthread_mutex_lock(&db->log_mutex);
 
 		while (db->produced_transactions == db->consumed_transactions) {
+			if (db->shutting_down) {
+				pthread_mutex_unlock(&db->log_mutex);
+				return 0;
+			}
 			//printf("db_journal_thread: waiting for transactions\n");
 			pthread_cond_wait(&db->log_cond, &db->log_mutex);
 		}
@@ -964,4 +968,15 @@ void db_commit(db_obj *db)
 fail:
 	perror("Error writing journal");
 	exit(-1);
+}
+
+void db_shutdown(db_obj *db)
+{
+#ifdef ASYNC_LOG
+	pthread_mutex_lock(&db->log_mutex);
+	db->shutting_down = 1;
+	pthread_mutex_unlock(&db->log_mutex);
+	pthread_cond_signal(&db->log_cond);
+	pthread_join(db->log_thread, NULL);
+#endif
 }
