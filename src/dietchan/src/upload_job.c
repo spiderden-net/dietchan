@@ -66,11 +66,12 @@ void upload_job_finalize(struct upload_job *upload_job)
 		if (upload_job->thumb_path)
 			unlink(upload_job->thumb_path);
 	}
-	if (upload_job->upload_dir) free(upload_job->upload_dir);
-	if (upload_job->file_path)  free(upload_job->file_path);
-	if (upload_job->thumb_path) free(upload_job->thumb_path);
-	if (upload_job->mime_type)  free(upload_job->mime_type);
-	if (upload_job->fd >= 0)    close(upload_job->fd);
+	free(upload_job->upload_dir);
+	free(upload_job->file_path);
+	free(upload_job->thumb_path);
+	free(upload_job->mime_type);
+	if (upload_job->fd >= 0)
+		close(upload_job->fd);
 	array_reset(&upload_job->job_output);
 }
 

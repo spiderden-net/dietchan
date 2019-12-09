@@ -20,8 +20,7 @@ static void board_page_finalize (http_context *http);
 
 void board_page_init(http_context *http)
 {
-	struct board_page *page = malloc(sizeof(struct board_page));
-	byte_zero(page, sizeof(struct board_page));
+	struct board_page *page = malloc0(sizeof(struct board_page));
 
 	http->info = page;
 
@@ -237,8 +236,8 @@ static int  board_page_finish (http_context *http)
 static void board_page_finalize (http_context *http)
 {
 	struct board_page *page = (struct board_page*)http->info;
-	if (page->url)   free(page->url);
-	if (page->board) free(page->board);
+	free(page->url);
+	free(page->board);
 	array_reset(&page->x_forwarded_for);
 	free(page);
 }

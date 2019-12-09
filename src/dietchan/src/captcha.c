@@ -68,8 +68,7 @@ static void captcha_job_finish(job_context *job, int status);
 
 static void captcha_job_start()
 {
-	struct captcha_info *info = malloc(sizeof(struct captcha_info));
-	byte_zero(info, sizeof(struct captcha_info));
+	struct captcha_info *info = malloc0(sizeof(struct captcha_info));
 	arc4random_buf(&info->id, sizeof(uint64));
 
 	static const char *allowed = "ABDEFGHMNQRTabdefghijmbqrt34678";

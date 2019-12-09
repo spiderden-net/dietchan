@@ -8,6 +8,7 @@
 #include <libowfat/byte.h>
 #include <libowfat/scan.h>
 
+#include "../util.h"
 #include "../tpl.h"
 #include "../print.h"
 #include "../persistence.h"
@@ -24,8 +25,7 @@ static void thread_page_finalize (http_context *http);
 
 void thread_page_init(http_context *http)
 {
-	struct thread_page *page = malloc(sizeof(struct thread_page));
-	byte_zero(page, sizeof(struct thread_page));
+	struct thread_page *page = malloc0(sizeof(struct thread_page));
 
 	http->info = page;
 
@@ -217,8 +217,8 @@ static int thread_page_finish (http_context *http)
 static void thread_page_finalize (http_context *http)
 {
 	struct thread_page *page = (struct thread_page*)http->info;
-	if (page->url)   free(page->url);
-	if (page->board) free(page->board);
+	free(page->url);
+	free(page->board);
 	array_reset(&page->x_forwarded_for);
 	free(page);
 }

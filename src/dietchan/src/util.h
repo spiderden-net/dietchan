@@ -11,6 +11,8 @@
 #define likely(x)      __builtin_expect(!!(x), 1)
 #define unlikely(x)    __builtin_expect(!!(x), 0)
 
+#define malloc0(size) calloc(1, size)
+
 size_t byte_str(const char *haystack, size_t haystack_length, const char *needle);
 int str_equalb(const char *a, size_t a_length, const char *b);
 int str_startb(const char *a, size_t a_length, const char *b);

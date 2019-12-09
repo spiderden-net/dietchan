@@ -268,9 +268,9 @@ static int edit_board_page_finish (http_context *http)
 static void edit_board_page_finalize(http_context *http)
 {
 	struct edit_board_page *page = (struct edit_board_page*)http->info;
-	if (page->action)                free(page->action);
-	if (page->board_name)            free(page->board_name);
-	if (page->board_title)           free(page->board_title);
-	if (page->board_banners)         free(page->board_banners);
+	free(page->action);
+	free(page->board_name);
+	free(page->board_title);
+	free(page->board_banners);
 	free(page);
 }

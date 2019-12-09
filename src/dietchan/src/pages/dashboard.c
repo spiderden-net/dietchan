@@ -20,8 +20,7 @@ static void dashboard_page_finalize(http_context *http);
 
 void dashboard_page_init(http_context *http)
 {
-	struct dashboard_page *page = malloc(sizeof(struct dashboard_page));
-	byte_zero(page, sizeof(struct dashboard_page));
+	struct dashboard_page *page = malloc0(sizeof(struct dashboard_page));
 	http->info = page;
 
 	http->get_param    = dashboard_page_param;
@@ -397,6 +396,6 @@ static int  dashboard_page_finish (http_context *http)
 static void dashboard_page_finalize(http_context *http)
 {
 	struct dashboard_page *page = (struct dashboard_page*)http->info;
-	if (page->boards_order)          free(page->boards_order);
+	free(page->boards_order);
 	free(page);
 }

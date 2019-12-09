@@ -385,11 +385,11 @@ static int edit_user_page_finish (http_context *http)
 static void edit_user_page_finalize(http_context *http)
 {
 	struct edit_user_page *page = (struct edit_user_page*)http->info;
-	if (page->action)                free(page->action);
-	if (page->user_name)             free(page->user_name);
-	if (page->user_email)            free(page->user_email);
-	if (page->user_password)         free(page->user_password);
-	if (page->user_password_confirm) free(page->user_password_confirm);
-	if (page->boards)                free(page->boards);
+	free(page->action);
+	free(page->user_name);
+	free(page->user_email);
+	free(page->user_password);
+	free(page->user_password_confirm);
+	free(page->boards);
 	free(page);
 }

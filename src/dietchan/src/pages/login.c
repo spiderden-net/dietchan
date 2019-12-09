@@ -15,8 +15,7 @@ static void login_page_finalize(http_context *http);
 
 void login_page_init(http_context *http)
 {
-	struct login_page *page = malloc(sizeof(struct login_page));
-	byte_zero(page, sizeof(struct login_page));
+	struct login_page *page = malloc0(sizeof(struct login_page));
 	http->info = page;
 
 	http->get_param    = login_page_get_param;
@@ -156,9 +155,9 @@ static void login_page_finalize(http_context *http)
 {
 	struct login_page *page = (struct login_page*)http->info;
 
-	if (page->username) free(page->username);
-	if (page->password) free(page->password);
-	if (page->redirect) free(page->redirect);
+	free(page->username);
+	free(page->password);
+	free(page->redirect);
 
 	free(page);
 }

@@ -59,8 +59,7 @@ static void db_grow(db_obj *db);
 
 db_obj* db_open(const char *file)
 {
-	db_obj *db = malloc(sizeof(db_obj));
-	byte_zero(db, sizeof(db));
+	db_obj *db = malloc0(sizeof(db_obj));
 
 	size_t journal_path_length = strlen(file) + strlen(".journal") +1;
 	char *journal = alloca(journal_path_length);

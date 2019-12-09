@@ -311,16 +311,16 @@ const char *usage =
 	"\n"
 	"Options:\n"
 	"  -l ip,port Listen on the specified ip address and port.\n"
-    "\n"
-    "Examples:\n"
-    "  dietchan -l 127.0.0.1,4000 -l ::1,4001\n"
-    "  Accept IPv4 requests from 127.0.0.1 on port 4000 and accept IPv6 requests from ::1 on port 4001.\n"
-    "\n"
-    "  dietchan -l 0.0.0.0,4000\n"
-    "  Accept IPv4 requests from any address on port 4000.\n"
-    "\n"
-    "  dietchan -l ::0,4000\n"
-    "  Accept IPv6 and IPv4 requests from any address on port 4000.\n";
+	"\n"
+	"Examples:\n"
+	"  dietchan -l 127.0.0.1,4000 -l ::1,4001\n"
+	"  Accept IPv4 requests from 127.0.0.1 on port 4000 and accept IPv6 requests from ::1 on port 4001.\n"
+	"\n"
+	"  dietchan -l 0.0.0.0,4000\n"
+	"  Accept IPv4 requests from any address on port 4000.\n"
+	"\n"
+	"  dietchan -l ::0,4000\n"
+	"  Accept IPv6 and IPv4 requests from any address on port 4000.\n";
 
 int main(int argc, char* argv[])
 {

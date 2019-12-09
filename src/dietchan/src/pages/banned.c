@@ -1,6 +1,8 @@
 #include "banned.h"
 
 #include <libowfat/array.h>
+
+#include "../util.h"
 #include "../ip.h"
 #include "../tpl.h"
 #include "../print.h"
@@ -13,8 +15,7 @@ static void banned_page_finalize (http_context *http);
 
 void banned_page_init(http_context *http)
 {
-	struct banned_page *page = malloc(sizeof(struct banned_page));
-	byte_zero(page, sizeof(struct banned_page));
+	struct banned_page *page = malloc0(sizeof(struct banned_page));
 
 	http->info = page;
 

@@ -15,6 +15,7 @@
 #include <libowfat/fmt.h>
 #include <libowfat/open.h>
 
+#include "../util.h"
 #include "../tpl.h"
 #include "../mime_types.h"
 
@@ -25,8 +26,7 @@ static void static_page_finalize (http_context *http);
 
 void static_page_init(http_context *http)
 {
-	struct static_page *page = malloc(sizeof(struct static_page));
-	byte_zero(page, sizeof(struct static_page));
+	struct static_page *page = malloc0(sizeof(struct static_page));
 
 	http->info = page;
 
@@ -119,7 +119,7 @@ static int static_page_finish (http_context *http)
 static void static_page_finalize (http_context *http)
 {
 	struct static_page *page = (struct static_page*)http->info;
-	if (page->real_path) free(page->real_path);
-	if (page->doc_root)  free(page->doc_root);
+	free(page->real_path);
+	free(page->doc_root);
 	free(page);
 }

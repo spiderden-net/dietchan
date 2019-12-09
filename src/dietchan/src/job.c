@@ -8,6 +8,8 @@
 #include <libowfat/io.h>
 #include <libowfat/byte.h>
 
+#include "util.h"
+
 static void    job_finalize(context *ctx);
 static void    job_free(context *ctx);
 static int     job_read(context *ctx, char *buf, int length);
@@ -41,8 +43,7 @@ job_context* job_new(const char *command)
 		default: /* parent */
 			close(p[0]);
 
-			job = malloc(sizeof(job_context));
-			byte_zero(job, sizeof(job_context));
+			job = malloc0(sizeof(job_context));
 			ctx = (context*)job;
 
 			context_init(ctx, p[1]);

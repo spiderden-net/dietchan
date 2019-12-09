@@ -28,12 +28,9 @@
 #include "../util.h"
 #include "../db.h"
 #include "../upload_job.h"
-#include "../util.h"
 #include "../captcha.h"
 #include "../bans.h"
 #include "../permissions.h"
-
-
 #include "../tpl.h"
 #include "../mime_types.h"
 
@@ -53,8 +50,7 @@ static void post_page_upload_job_error(struct upload_job *upload_job, int status
 
 void post_page_init(http_context *http)
 {
-	struct post_page *page = malloc(sizeof(struct post_page));
-	byte_zero(page, sizeof(struct post_page));
+	struct post_page *page = malloc0(sizeof(struct post_page));
 
 	page->board = -1;
 	page->thread = -1;
@@ -709,12 +705,12 @@ static void post_page_finalize (http_context *http)
 {
 	struct post_page *page = (struct post_page*)http->info;
 
-	if (page->subject)    free(page->subject);
-	if (page->username)   free(page->username);
-	if (page->text)       free(page->text);
-	if (page->password)   free(page->password);
-	if (page->user_agent) free(page->user_agent);
-	if (page->role)       free(page->role);
+	free(page->subject);
+	free(page->username);
+	free(page->text);
+	free(page->password);
+	free(page->user_agent);
+	free(page->role);
 	array_reset(&page->x_forwarded_for);
 
 	ssize_t upload_job_count = array_length(&page->upload_jobs, sizeof(struct upload_job));

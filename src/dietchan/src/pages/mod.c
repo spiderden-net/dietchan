@@ -13,8 +13,8 @@
 #include <libowfat/ip4.h>
 #include <libowfat/ip6.h>
 
-#include "../tpl.h"
 #include "../util.h"
+#include "../tpl.h"
 #include "../permissions.h"
 
 
@@ -29,8 +29,7 @@ static int can_delete_ban(struct user *user, struct ban *ban);
 
 void mod_page_init(http_context *http)
 {
-	struct mod_page *page = malloc(sizeof(struct mod_page));
-	byte_zero(page, sizeof(struct mod_page));
+	struct mod_page *page = malloc0(sizeof(struct mod_page));
 	http->info = page;
 
 	http->get_param    = mod_page_get_param;
