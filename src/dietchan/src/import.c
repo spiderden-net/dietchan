@@ -546,6 +546,8 @@ static int parse_user(void *unused)
 		if (str_equal(token.string, "id")) {
 			EXPECT2(TOK_NUMBER, &val);
 			user_set_id(user, val.number);
+			if (user_id(user) > master_user_counter(master))
+				master_set_user_counter(master, user_id(user));
 		} else if (str_equal(token.string, "name")) {
 			EXPECT2(TOK_STRING, &val);
 			user_set_name(user, val.string);
@@ -611,6 +613,8 @@ static int parse_ban(void *unused)
 		} else if (str_equal(token.string, "id")) {
 			EXPECT2(TOK_NUMBER, &val);
 			ban_set_id(ban, val.number);
+			if (ban_id(ban) > master_ban_counter(master))
+				master_set_ban_counter(master, ban_id(ban));
 		} else if (str_equal(token.string, "timestamp")) {
 			EXPECT2(TOK_NUMBER, &val);
 			ban_set_timestamp(ban, val.number);
