@@ -111,6 +111,36 @@ void export()
 		}
 		printf("    }%s\n", user_next_user(user)?",":""); // /user
 	}
-	printf("  ]\n"); // /users
+	printf("  ],\n"); // /users
+
+	printf("  \"bans\": [\n");
+	for (struct ban *ban = master_first_ban(master); ban; ban = ban_next_ban(ban)) {
+		if (ban_type(ban) == BAN_FLOOD)
+			continue;
+		printf("    {\n");
+		buf[fmt_ip_range(buf, &ban_range(ban))] = '\0';
+		printf("      \"range\": \"%s\",\n", buf);
+		printf("      \"enabled\": %d,\n", (int)ban_enabled(ban));
+		printf("      \"hidden\": %d,\n", (int)ban_hidden(ban));
+		printf("      \"type\": %d,\n", (int)ban_type(ban));
+		printf("      \"target\": %d,\n", (int)ban_target(ban));
+		printf("      \"id\": %" PRIu64 ",\n", ban_id(ban));
+		printf("      \"timestamp\": %" PRIu64 ",\n", ban_timestamp(ban));
+		printf("      \"duration\": %" PRId64 ",\n", ban_duration(ban));
+		printf("      \"post\": %" PRIu64 ",\n", ban_post(ban));
+		if (ban_boards(ban)) {
+			printf("      \"boards\": [");
+			for (int i=0; ban_boards(ban)[i] != -1; ++i) {
+				printf("%" PRId64 "%s", ban_boards(ban)[i], ban_boards(ban)[i+1] != -1?", ":"");
+			}
+			printf("],\n"); // /boards
+		}
+		printf("      \"reason\": \""); print_esc(ban_reason(ban)); printf("\",\n");
+		printf("      \"mod\": %" PRIu64 ",\n", ban_mod(ban));
+		printf("      \"mod_name\": \""); print_esc(ban_mod_name(ban)); printf("\"\n");
+		printf("    }%s\n", ban_next_ban(ban)?",":""); // /ban
+	}
+	printf("  ]\n"); // /bans
+
 	printf("}");
 }

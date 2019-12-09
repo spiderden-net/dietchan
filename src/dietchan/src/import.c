@@ -179,7 +179,7 @@ static void json_skip_structure(const struct json_token *token)
 		case TOK_EOF:
 			return;
 		case TOK_ARRAY_BEGIN:
-			json_skip_array;
+			json_skip_array();
 			break;
 		case TOK_OBJ_BEGIN:
 			json_skip_object();
@@ -492,6 +492,34 @@ static int parse_board(void *unused)
 	}
 }
 
+static int parse_bids(int64 **bids)
+{
+	EXPECT(TOK_ARRAY_BEGIN);
+	array tmp = {0};
+	size_t count = 0;
+	struct json_token token = {0};
+	while (1) {
+		token = json_get_token();
+		if (token.type == TOK_ARRAY_END)
+			break;
+		if (token.type != TOK_NUMBER)
+			return -1;
+		int64 *bid = array_allocate(&tmp, sizeof(int64), count++);
+		*bid = token.number;
+	}
+	if (count > 0) {
+		*bids = db_alloc0(sizeof(int64)*(count+1));
+		memcpy(*bids, array_start(&tmp), sizeof(int64)*count);
+		(*bids)[count] = -1;
+		db_invalidate(db, *bids);
+	} else {
+		*bids = NULL;
+	}
+	array_reset(&tmp);
+	free_token(&token);
+	return 0;
+}
+
 static int parse_user(void *unused)
 {
 	struct user *user = user_new();
@@ -531,30 +559,86 @@ static int parse_user(void *unused)
 			EXPECT2(TOK_NUMBER, &val);
 			user_set_type(user, val.number);
 		} else if (str_equal(token.string, "boards")) {
-			EXPECT(TOK_ARRAY_BEGIN);
-			array bids = {0};
-			size_t count = 0;
-			while (1) {
-				val = json_get_token();
-				if (val.type == TOK_ARRAY_END)
-					break;
-				if (val.type != TOK_NUMBER)
-					return -1;
-				int64 *bid = array_allocate(&bids, sizeof(int64), count++);
-				*bid = val.number;
-			}
-			if (count > 0) {
-				int64 *boards = db_alloc0(sizeof(int64)*(count+1));
-				memcpy(boards, array_start(&bids), sizeof(int64)*count);
-				boards[count] = -1;
-				db_invalidate(db, boards);
-				user_set_boards(user, boards);
-			}
-			array_reset(&bids);
+			int64 *bids = NULL;
+			if (parse_bids(&bids) < 0)
+				return -1;
+			user_set_boards(user, bids);
 		} else {
 			val = json_get_token();
 			json_skip_structure(&val);
 		}
+		free_token(&val);
+
+		free_token(&token);
+	}
+}
+
+static int parse_ban(void *unused)
+{
+	struct ban *ban = ban_new();
+
+	while (1) {
+		struct json_token token = json_get_token();
+		if (token.type == TOK_OBJ_END) {
+			insert_ban(ban);
+			return 0;
+		}
+		if (token.type != TOK_STRING) {
+			free_token(&token);
+			return -1;
+		}
+
+		EXPECT(TOK_COLON);
+
+		struct json_token val = {0};
+		if (str_equal(token.string, "range")) {
+			EXPECT2(TOK_STRING, &val);
+			struct ip_range range = {0};
+			scan_ip_range(val.string, &range);
+			ban_set_range(ban, range);
+		} else if (str_equal(token.string, "enabled")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_enabled(ban, val.number);
+		} else if (str_equal(token.string, "hidden")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_hidden(ban, val.number);
+		} else if (str_equal(token.string, "type")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_type(ban, val.number);
+		} else if (str_equal(token.string, "target")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_target(ban, val.number);
+		} else if (str_equal(token.string, "id")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_id(ban, val.number);
+		} else if (str_equal(token.string, "timestamp")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_timestamp(ban, val.number);
+		} else if (str_equal(token.string, "duration")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_duration(ban, val.number);
+		} else if (str_equal(token.string, "post")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_post(ban, val.number);
+		} else if (str_equal(token.string, "reason")) {
+			EXPECT2(TOK_STRING, &val);
+			ban_set_reason(ban, val.string);
+		} else if (str_equal(token.string, "mod")) {
+			EXPECT2(TOK_NUMBER, &val);
+			ban_set_mod(ban, val.number);
+		} else if (str_equal(token.string, "mod_name")) {
+			EXPECT2(TOK_STRING, &val);
+			ban_set_mod_name(ban, val.string);
+		} else if (str_equal(token.string, "boards")) {
+			int64 *bids = NULL;
+			if (parse_bids(&bids) < 0)
+				return -1;
+			ban_set_boards(ban, bids);
+		} else {
+			val = json_get_token();
+			json_skip_structure(&val);
+		}
+
 		free_token(&val);
 
 		free_token(&token);
@@ -587,6 +671,10 @@ int import()
 		} else if (str_equal(token.string, "users")) {
 			EXPECT(TOK_ARRAY_BEGIN);
 			if (parse_array(parse_user, 0) == -1)
+				return -1;
+		} else if (str_equal(token.string, "bans")) {
+			EXPECT(TOK_ARRAY_BEGIN);
+			if (parse_array(parse_ban, 0) == -1)
 				return -1;
 		} else {
 			val = json_get_token();
