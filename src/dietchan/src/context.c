@@ -130,7 +130,10 @@ void context_flush(context *ctx)
 		return;
 	}
 
-	io_wantwrite(ctx->fd);
+	if (ret == 0)
+		io_dontwantwrite(ctx->fd);
+	else
+		io_wantwrite(ctx->fd);
 
 	if (ret == 0 && ctx->eof) {
 		// HTTP:
@@ -179,10 +182,10 @@ void context_flush(context *ctx)
 		//
 		#if 0
 			shutdown(ctx->fd, SHUT_WR);
-			io_dontwantwrite(ctx->fd);
+			//io_dontwantwrite(ctx->fd);
 		#else
 			shutdown(ctx->fd, SHUT_RDWR);
-			io_dontwantwrite(ctx->fd);
+			//io_dontwantwrite(ctx->fd);
 		#endif
 
 		// Write end was closed -> unref structure

@@ -36,11 +36,16 @@ void static_page_init(http_context *http)
 	http->finalize     = static_page_finalize;
 
 	page->doc_root = realpath(DOC_ROOT "/", 0);
+	if (!page->doc_root)
+		perror("!!!!! realpath failed !!!!!");
 }
 
 static int static_page_request (http_context *http, http_method method, char *path, char *query)
 {
 	struct static_page *page = (struct static_page*)http->info;
+
+	if (!page->doc_root)
+		HTTP_FAIL(INTERNAL_SERVER_ERROR);
 
 	if (method != HTTP_GET)
 		HTTP_FAIL(METHOD_NOT_ALLOWED);

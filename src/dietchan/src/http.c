@@ -358,7 +358,7 @@ static int http_parse_cookie(http_context *http, char *cookies)
 
 		key_end = &key_start[str_chr(key_start, '=')];
 		if (*key_end == '\0')
-			return ERROR;
+			HTTP_FAIL(BAD_REQUEST);
 		*key_end = '\0';
 		val_start = key_end + 1;
 		val_end = &val_start[str_chr(val_start, ';')];
@@ -403,15 +403,15 @@ static ssize_t http_read_body(http_context *http, char *buf, size_t length)
 	ssize_t offset = 0;
 	ssize_t consumed = 0;
 
-	// We don't support persistent connections yet
+	// We don't support persistent connections yet. We just swallow if for now and 
+	// pretend we read it. If we get here we already have a response queued, so we
+	// don't want to generate an error response.
 	if (http->content_received > http->content_length)
-		return ERROR;
+		return length; //return ERROR;
 
 	// In case connection was aborted while sending body
-	if (length == 0 && http->content_received < http->content_length) {
-		if (http->error) http->error(http);
-		return ERROR;
-	}
+	if (length == 0 && http->content_received < http->content_length)
+		HTTP_FAIL(BAD_REQUEST);
 
 	switch(http->multipart_state) {
 		case MULTIPART_STATE_NONE:
@@ -712,8 +712,11 @@ int http_read(context *ctx, char *buf, int length)
 
 	array_catb(&http->read_buffer, buf, length);
 
-	if (length == 0)
-		http->state = HTTP_STATE_EOF;
+	if (length == 0 && http->state != HTTP_STATE_EOF) {
+		// Connection prematurely closed
+		printf("Connection %d prematurely closed \n", ctx->fd);
+		HTTP_FAIL(BAD_REQUEST);
+	}
 
 	char *total_buf = array_start(&http->read_buffer);
 	size_t total_length = array_bytes(&http->read_buffer);

@@ -17,6 +17,7 @@ typedef struct context {
 	io_batch *batch;
 	int  error;
 	int  eof;
+	int  write_end_closed;
 	int  (*read)(struct context *ctx, char *buf, int length);
 	void (*finalize)(struct context *ctx);
 	void (*free)(struct context *ctx);
