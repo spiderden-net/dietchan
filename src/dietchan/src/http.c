@@ -712,11 +712,8 @@ int http_read(context *ctx, char *buf, int length)
 
 	array_catb(&http->read_buffer, buf, length);
 
-	if (length == 0 && http->state != HTTP_STATE_EOF) {
-		// Connection prematurely closed
-		printf("Connection %d prematurely closed \n", ctx->fd);
-		HTTP_FAIL(BAD_REQUEST);
-	}
+	if (length == 0)
+		http->state = HTTP_STATE_EOF;
 
 	char *total_buf = array_start(&http->read_buffer);
 	size_t total_length = array_bytes(&http->read_buffer);

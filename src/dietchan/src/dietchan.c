@@ -211,40 +211,6 @@ void read_data(int64 s, context *ctx, int64 bytes_limit)
 			// when it should only be decremented once. The result is a crash.
 			io_dontwantread(s);
 
-			// We have to pay attention to a nasty special case here:
-			//
-			// Sometimes the client closes the connection before sending anything.
-			// In this case we need to close the write end in addition to the read end, because
-			// we never actually tried to send anything - we may not even have handled the request -
-			// hence we never closed it nor will we get any further events that will cause us to
-			// close it. The result would be a memory & fd leak.
-			//
-			// First of all, keep in mind this scenario cannot occur if ctx->eof == true because in
-			// that case we definitely know we sent something and it either succeeded or it's queued
-			// and we will get another notification.
-			//
-			// That leaves us with the other case, where ctx->eof == false. Here we need to check
-			// what references to the context exist. Note that there may be external references to
-			// the context, e.g. from background jobs. If such references exist, then we don't want
-			// to close the write end yet because we may want to send a response later.
-			//
-			// If the refcount is > 2, then we know that there is an external reference.
-			//
-			// That leaves us with the case where refcount == 2. We know that one reference is 
-			// the read because otherwise we would not be in this function right now). The other
-			// reference could either be the write end OR some other external reference (for example
-			// a background job). We can distinguish them as follows: If write_end_closed == true
-			// we know that the write end has been closed (refcount was decremented along with it),
-			// so the other reference must be external. Otherwise, if write_end_closed == false, the
-			// second reference must be from the write end and we can safely close it.
-
-			if (!ctx->eof && ctx->refcount == 2 && !ctx->write_end_closed) {
-				shutdown(ctx->fd, SHUT_RDWR);
-				ctx->write_end_closed = 1;
-				context_unref(ctx);
-			}
-
-			// Unref read end
 			context_unref(ctx);
 			return;
 		}
