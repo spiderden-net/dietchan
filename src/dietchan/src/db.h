@@ -44,6 +44,7 @@ typedef struct db_obj {
 	char *priv_map;
 	int   transactions;
 	array dirty_regions;
+	int   gc_counter;
 
 #ifdef ASYNC_LOG
 	pthread_mutex_t  log_mutex;

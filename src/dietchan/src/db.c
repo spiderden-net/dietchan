@@ -18,30 +18,19 @@
 
 typedef uint32 journal_entry_type;
 
-typedef enum db_region_boundary_type {
-	DB_REGION_START,
-	DB_REGION_END
-} db_region_boundary_type;
-
 typedef struct db_region_boundary {
-	db_region_boundary_type type:1;
-	db_ptr position:63;
+	db_ptr start;
+	db_ptr end;
 } db_region_boundary;
 
 static int region_boundary_comp(const void *_a, const void *_b)
 {
 	const db_region_boundary *a = _a;
 	const db_region_boundary *b = _b;
-	if (a->position < b->position)
+	if (a->start < b->start)
 		return -1;
-	if (a->position > b->position)
+	if (a->start > b->start)
 		return +1;
-
-	if (a->type == DB_REGION_START && b->type == DB_REGION_END)
-		return -1;
-
-	if (a->type == DB_REGION_END   && b->type == DB_REGION_START)
-		return -1;
 
 	return 0;
 }
@@ -487,6 +476,36 @@ void db_invalidate(db_obj *db, void *ptr)
 	db_invalidate_region(db, ptr, net_bucket_size(bucket->order));
 }
 
+void merge_overlapping_regions(db_obj *db, int n)
+{
+	size_t dirty_regions_len = array_length(&db->dirty_regions, sizeof(db_region_boundary));
+	if (n < 0)
+		n = dirty_regions_len;
+	if (dirty_regions_len < n)
+		return;
+	size_t start = dirty_regions_len - n;
+
+	qsort(array_get(&db->dirty_regions, sizeof(db_region_boundary), start),
+	      n,
+	      sizeof(db_region_boundary),
+	      region_boundary_comp);
+
+	size_t o=start;
+	for (size_t i=start; i<array_length(&db->dirty_regions, sizeof(db_region_boundary)); ++i) {
+		db_region_boundary *prev_region = array_get(&db->dirty_regions, sizeof(db_region_boundary), o);
+		db_region_boundary *region = array_get(&db->dirty_regions, sizeof(db_region_boundary), i);
+		if (region->start > prev_region->end) {
+			assert(o<i);
+			prev_region[1] = *region;
+			++o;
+		} else if (region->end > prev_region->end) {
+			prev_region->end = region->end;
+		}
+	}
+
+	array_truncate(&db->dirty_regions, sizeof(db_region_boundary), o+1);
+}
+
 void db_invalidate_region(db_obj *db, void *ptr, const uint64 size)
 {
 	if (!ptr)
@@ -496,14 +515,17 @@ void db_invalidate_region(db_obj *db, void *ptr, const uint64 size)
 	db->changed = 1;
 
 	size_t len = array_length(&db->dirty_regions, sizeof(db_region_boundary));
-	db_region_boundary *start = array_allocate(&db->dirty_regions, sizeof(db_region_boundary), len);
-	db_region_boundary *end = array_allocate(&db->dirty_regions, sizeof(db_region_boundary), len+1);
+	db_region_boundary *region = array_allocate(&db->dirty_regions, sizeof(db_region_boundary), len);
 
-	start->type = DB_REGION_START;
-	start->position = db_marshal(db, ptr);
+	region->start = db_marshal(db, ptr);
+	region->end = region->start + size;
 
-	end->type = DB_REGION_END;
-	end->position = start->position + size;
+	++db->gc_counter;
+	static const int thresh = 1024;
+	if (db->gc_counter > thresh) {
+		merge_overlapping_regions(db, thresh);
+		db->gc_counter = 0;
+	}
 }
 
 static void db_init(db_obj *db)
@@ -893,12 +915,6 @@ void db_commit(db_obj *db)
 	if (!db->changed)
 		return;
 
-	// Sort dirty regions
-	qsort(array_start(&db->dirty_regions),
-	      array_length(&db->dirty_regions, sizeof(db_region_boundary)),
-	      sizeof(db_region_boundary),
-	      region_boundary_comp);
-
 #ifdef ASYNC_LOG
 	pthread_mutex_lock(&db->log_mutex);
 	++db->produced_transactions;
@@ -907,38 +923,23 @@ void db_commit(db_obj *db)
 	lseek(db->journal_fd, 0, SEEK_END);
 #endif
 
-	// Write changes to log, skip duplicate regions
-	db_ptr region_start = ~0L;
-	int64 nesting=0;
+	merge_overlapping_regions(db, -1);
+
 	for (int i=0; i<array_length(&db->dirty_regions, sizeof(db_region_boundary)); ++i) {
 		db_region_boundary *region = array_get(&db->dirty_regions, sizeof(db_region_boundary), i);
-		if (region->type == DB_REGION_START) {
-			if (likely(nesting == 0))
-				region_start = region->position;
-			++nesting;
-		} else {
-			--nesting;
-			assert(likely(nesting >= 0));
-			assert(likely(region_start != ~0L));
-			if (likely(nesting == 0)) {
-				db_ptr region_end  = region->position;
-				db_ptr region_size = region_end - region_start;
+		db_ptr region_size = region->end - region->start;
 
-				journal_entry_type type = JOURNAL_WRITE;
-				//printf("Invalidate %x - %x (%d)\n", (int)region_start, (int)region_end, (int)region_size);
-				if (db_write_log(db, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
-					goto fail;
-				if (db_write_log(db, &region_start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
-					goto fail;
-				if (db_write_log(db, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
-					goto fail;
-				if (db_write_log(db, db->priv_map + region_start, region_size) < (ssize_t)region_size)
-					goto fail;
-			}
-		}
+		journal_entry_type type = JOURNAL_WRITE;
+		//printf("Invalidate %x - %x (%d)\n", (int)region->start, (int)region->end, (int)region_size);
+		if (db_write_log(db, &type, sizeof(journal_entry_type)) < (ssize_t)sizeof(journal_entry_type))
+			goto fail;
+		if (db_write_log(db, &region->start, sizeof(db_ptr)) < (ssize_t)sizeof(db_ptr))
+			goto fail;
+		if (db_write_log(db, &region_size, sizeof(uint64)) < (ssize_t)sizeof(uint64))
+			goto fail;
+		if (db_write_log(db, db->priv_map + region->start, region_size) < (ssize_t)region_size)
+			goto fail;
 	}
-
-	assert(nesting == 0);
 
 #ifndef ASYNC_LOG
 	if (safe_fsync(db->journal_fd) == -1) {
