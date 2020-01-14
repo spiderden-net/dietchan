@@ -18,6 +18,7 @@ IF ("${CMAKE_SYSTEM}" MATCHES "Linux")
 		#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
 		#CVS_MODULE "dietlibc"
 		URL "https://www.fefe.de/dietlibc/dietlibc-0.34.tar.xz"
+		URL_HASH MD5=4f04a6f642548cc5be716a6e0de6b631
 		${HACK1}
 		SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/dietlibc"
 		PREFIX "${PROJECT_SOURCE_DIR}/.prefix/dietlibc"
@@ -45,6 +46,7 @@ IF ("${CMAKE_SYSTEM}" MATCHES "Linux")
 		#CVS_REPOSITORY ":pserver:cvs@cvs.fefe.de:/cvs"
 		#CVS_MODULE "libowfat"
 		URL "https://www.fefe.de/libowfat/libowfat-0.32.tar.xz"
+		URL_HASH MD5=ee015ccf45cb2bc61c942642038c2bdc
 		${HACK2}
 		SOURCE_DIR "${PROJECT_SOURCE_DIR}/src/libowfat"
 		PREFIX "${PROJECT_SOURCE_DIR}/.prefix/libowfat"
