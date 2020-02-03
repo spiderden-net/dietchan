@@ -133,7 +133,7 @@ static int  board_page_finish (http_context *http)
 		PRINT_SESSION();
 		PRINT_BODY();
 		PRINT(S("<h1>404</h1>"
-		        "<p>Das Brett wurde nicht gefunden :(.</p>"));
+		        "<p>The board was not found :(.</p>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -147,7 +147,7 @@ static int  board_page_finish (http_context *http)
 		PRINT_SESSION();
 		PRINT_BODY();
 		PRINT(S("<h1>404</h1>"
-		        "<p>Die Seite wurde nicht gefunden.</p>"));
+		        "<p>The site was not found.</p>"));
 		PRINT_EOF();
 		return ERROR;
 	}

@@ -805,11 +805,11 @@ static int  mod_page_finish (http_context *http)
 			              "</td>"
 			            "</tr>"
 			            "<tr>"
-			              "<th><label for='duration'>Dauer</label></th>"
+			              "<th><label for='duration'>Duration</label></th>"
 			              "<td colspan='3'><input type='text' name='duration' value='"), E(page->duration), S("'></td>"
 			            "</tr>"
 			            "<tr>"
-			              "<th><label for='reason'>Grund</label></th>"
+			              "<th><label for='reason'>Reason</label></th>"
 			              "<td colspan='3'><textarea name='reason'>"), E(page->reason), S("</textarea></td>"
 			            "</tr>"));
 			if (any_valid_post) {
@@ -825,19 +825,19 @@ static int  mod_page_finish (http_context *http)
 		// "Delete ban" form
 		if (do_delete_ban) {
 			PRINT(S("<p><input type='checkbox' name='submitted' id='submitted' value='1'>"
-			           "<label for='submitted'>Bann wirklich löschen</label></p>"
-			         "<p><input type='submit' value='Löschen'></p>"));
+			           "<label for='submitted'>Clear the spell</label></p>"
+			         "<p><input type='submit' value='Clear'></p>"));
 		}
 
 		// Report form
 		if (do_report && any_valid_post) {
-			PRINT(S("<p><label for='reason'>Grund</label><br>"
+			PRINT(S("<p><label for='reason'>Reason</label><br>"
 			        "<select name='reason'>"
 			          "<option value='spam'>Spam</option>"
-			          "<option value='illegal'>Illegale Inhalte</option>"
-			          "<option value='other'>Sonstiges</option>"
+			          "<option value='illegal'>Illegal Content</option>"
+			          "<option value='other'>Other</option>"
 			        "</select></p>"
-			        "<p><label for='comment'>Kommentar</label><br>"
+			        "<p><label for='comment'>Comment</label><br>"
 			        "<input type='text' name='comment'></p>"
 			        "<p><input type='submit' value='Petzen'></p>"));
 		}

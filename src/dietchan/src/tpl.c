@@ -37,18 +37,18 @@ void print_reply_form(http_context *http, struct board *board, struct thread *th
 	        "<table>"
 	          "<tr>"
 	            "<th colspan='3'>"
-	            "<h3>"), thread?S("Antwort erstellen"):S("Neuen Faden erstellen"),S("</h3>"
+	            "<h3>"), thread?S("Create Answer"):S("Create New Thread"),S("</h3>"
 	          "</th>"
 	          "</tr>"
 	          "<tr>"
-	            "<th><label for='sage'>Säge</label></th>"
+	            "<th><label for='sage'>Sage</label></th>"
 	            "<td colspan='2'><input type='checkbox' name='sage' value='1'></td>"
 	          "</tr>"
 	          "<tr>"
-	            "<th><label for='subject'>Betreff</label></th>"
+	            "<th><label for='subject'>Subject</label></th>"
 	            "<td><input name='subject' type='text'></td>"
 	            "<td width='1'>"
-	             "<input type='submit' value='"), thread?S("Antwort erstellen"):S("Faden erstellen"), S("'>"
+	             "<input type='submit' value='"), thread?S("Create Answer"):S("Create Thread"), S("'>"
 	            "</td>"
 	          "</tr>"
 	          "<tr>"
@@ -57,7 +57,7 @@ void print_reply_form(http_context *http, struct board *board, struct thread *th
 		PRINT(S("<td><input name='username2' type='text' autocomplete='nein'></td>"
 		        "<td>"
 		          "<select name='role'>"
-		            "<option value=''>Anonym</option>"
+		            "<option value=''>Anonymous</option>"
 		            "<option value='mod'>Mod</option>"),
 		            (user_type(user) == USER_ADMIN)?
 		              S("<option value='admin'>Admin</option>"):S(""), S(
@@ -68,22 +68,22 @@ void print_reply_form(http_context *http, struct board *board, struct thread *th
 	}
 	PRINT(S(  "</tr>"
 	          "<tr>"
-	            "<th><label for='text2'>Kommentar</label></th>"
+	            "<th><label for='text2'>Comment</label></th>"
 	            "<td colspan='2'><textarea name='text2'></textarea></td>"
 	          "</tr>"
 	          "<tr>"
-	            "<th title='Max. "), HK(MAX_UPLOAD_SIZE), S("B pro Datei'><label for='text'>Dateien</label>"
+	            "<th title='Max. "), HK(MAX_UPLOAD_SIZE), S("B per file'><label for='text'>Files</label>"
 	                 "<span class='sub-label'> (≤ 4)</span>"
 	            "</th>"
 	            "<td colspan='2'>"
-	                "<input type='file' name='file' multiple required title='Max. "), HK(MAX_UPLOAD_SIZE), S("B pro Datei'><br>"
+	                "<input type='file' name='file' multiple required title='Max. "), HK(MAX_UPLOAD_SIZE), S("B per file'><br>"
 	                "<input type='file' name='file' multiple required><br>"
 	                "<input type='file' name='file' multiple required><br>"
 	                "<input type='file' name='file' multiple required><br>"
 	            "</td>"
 	          "</tr>"
 	          "<tr>"
-	            "<th><label for='password'>Passwort</label></th>"
+	            "<th><label for='password'>Password</label></th>"
 	            "<td colspan='2'>"
 	              "<input type='text' name='dummy' autocomplete='username' value='-' "
 	                "size='1' maxlength='1' tabindex='-1' style='width: 0; height:0; "
@@ -108,9 +108,9 @@ void print_reply_form(http_context *http, struct board *board, struct thread *th
 		          "<th>Moderation</th>"
 		          "<td colspan='2'>"
 		            "<input type='checkbox' name='pin' id='reply-pin' value='1'> "
-		            "<label for='reply-pin'>Anpinnen</label> "
+		            "<label for='reply-pin'>Pin</label> "
 		            "<input type='checkbox' name='close' id='reply-close' value='1'> "
-		            "<label for='reply-pin'>Schließen</label>"
+		            "<label for='reply-pin'>Done.</label>"
 		          "</td>"
 		        "</tr>"));
 	}
@@ -149,8 +149,8 @@ void print_top_bar(http_context *http, struct user *user, const char *url)
 	        "<div class='top-bar-right'>"));
 	if (user) {
 		if (user_type(user) == USER_ADMIN || user_type(user) == USER_MOD)
-			PRINT(S("<a href='"), S(PREFIX), S("/dashboard'>Kontrollzentrum</a><span class='space'> </span>"));
-		PRINT(S("<a href='"), S(PREFIX), S("/login?logout&amp;redirect="), E(url), S("'>Ausloggen</a>"));
+			PRINT(S("<a href='"), S(PREFIX), S("/dashboard'>Control Panel</a><span class='space'> </span>"));
+		PRINT(S("<a href='"), S(PREFIX), S("/login?logout&amp;redirect="), E(url), S("'>Login</a>"));
 	} else {
 		PRINT(S("<a href='"), S(PREFIX), S("/login?redirect="), E(url), S("'>Einloggen</a>"));
 	}
@@ -418,8 +418,8 @@ void write_page_css(http_context *http)
 void print_page_footer(http_context *http)
 {
 	PRINT(S(    "<div class='footer'>"
-	              "Proudly made without PHP, Java, Perl, MySQL, Postgres, MongoDB and Node.js.<br>"
-	              "<small><a href='https://gitgud.io/zuse/dietchan'>Quellcode</a></small>"
+	              "This site is a spiderden project.<br>"
+	              "<small><a href='https://gitgud.io/zuse/dietchan'>Source Code</a></small>"
 	            "</div>"
 	          "</body>"
 	        "</html>"));
@@ -546,7 +546,7 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 	                  S("'>"),
 	                  (post_username(post)[0] == '\0')?E(DEFAULT_NAME):E(post_username(post)),
 	                  (post_user_role(post) == USER_ADMIN)?S(" ## Admin"):S(""),
-	                  (post_user_role(post) == USER_MOD)  ?S(" ## Mod"):S(""), S(
+	                  (post_user_role(post) == USER_MOD)  ?S(" ## Moderator"):S(""), S(
 	                  "</span><span class='space'> </span>"));
 	if (flags & WRITE_POST_IP) {
 		if (!post_x_real_ip(post).version || is_external_ip(&post_ip(post)))

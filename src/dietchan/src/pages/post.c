@@ -358,20 +358,20 @@ static int post_page_finish (http_context *http)
 	if (page->thread == -1) {
 		board = find_board_by_id(page->board);
 		if (!board) {
-			PRINT_STATUS_HTML("404 Gibbet nich");
+			PRINT_STATUS_HTML("404 Not Found");
 			PRINT_SESSION();
 			PRINT_BODY();
-			PRINT(S("<h1>Brett existiert nicht :(</h1>"));
+			PRINT(S("<h1>That board does not exist.</h1>"));
 			PRINT_EOF();
 			return ERROR;
 		}
 	} else {
 		thread = find_thread_by_id(page->thread);
 		if (!thread) {
-			PRINT_STATUS_HTML("404 Gibbet nich");
+			PRINT_STATUS_HTML("404 Not Found");
 			PRINT_SESSION();
 			PRINT_BODY();
-			PRINT(S("<h1>Faden existiert nicht :(</h1>"));
+			PRINT(S("<h1>That thread isn't anywhere to be seen.exist</h1>"));
 			PRINT_EOF();
 			return ERROR;
 		}
@@ -405,7 +405,7 @@ static int post_page_finish (http_context *http)
 			PRINT_STATUS_HTML("402 Verboten");
 			PRINT_SESSION();
 			PRINT_BODY();
-			PRINT(S("<h1>Du kannst in diesem Brett keinen Faden erstellen.</h1>"));
+			PRINT(S("<h1>You cannot create a thread in this board.</h1>"));
 			PRINT_EOF();
 			return ERROR;
 	}
@@ -417,7 +417,7 @@ static int post_page_finish (http_context *http)
 		PRINT_STATUS_HTML("400 Not okay");
 		PRINT_SESSION();
 		PRINT_BODY();
-		PRINT(S("<h1>Beitrag muss einen Text enthalten!</h1>"));
+		PRINT(S("<h1>You need to put text into your post.</h1>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -427,7 +427,7 @@ static int post_page_finish (http_context *http)
 		PRINT_STATUS_HTML("400 Not okay");
 		PRINT_SESSION();
 		PRINT_BODY();
-		PRINT(S("<h1>Neuer Faden muss ein Bild enthalten.</h1>"));
+		PRINT(S("<h1>New threads must have an image attached.</h1>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -437,7 +437,7 @@ static int post_page_finish (http_context *http)
 		PRINT_STATUS_HTML("400 Not okay");
 		PRINT_SESSION();
 		PRINT_BODY();
-		PRINT(S("<h1>Beitrag ist zu lang! (maximal "), I64(POST_MAX_BODY_LENGTH), S(" Zeichen)</h1>"));
+		PRINT(S("<h1>That post is too long! (maximal "), I64(POST_MAX_BODY_LENGTH), S(" Zeichen)</h1>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -446,7 +446,7 @@ static int post_page_finish (http_context *http)
 		PRINT_STATUS_HTML("400 Not okay");
 		PRINT_SESSION();
 		PRINT_BODY();
-		PRINT(S("<h1>Betreff ist zu lang! (maximal "), I64(POST_MAX_SUBJECT_LENGTH), S(" Zeichen)</h1>"));
+		PRINT(S("<h1>The subject is too long. It should be at most (maximal "), I64(POST_MAX_SUBJECT_LENGTH), S(" characters.)</h1>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -467,9 +467,9 @@ static int post_page_finish (http_context *http)
 
 	if (flood) {
 		uint64 now = time(0);
-		PRINT_STATUS_HTML("403 Verboten");
+		PRINT_STATUS_HTML("403 Forbidden");
 		PRINT_BODY();
-		PRINT(S("<p>Flood protection: Du kannst den nächsten Beitrag erst in "), U64(flood - now), S(" Sekunden erstellen.</p>"));
+		PRINT(S("<p>Flood protection: You can only read the next post in "), U64(flood - now), S(" seconds.</p>"));
 		PRINT_EOF();
 		return ERROR;
 	}
@@ -479,27 +479,25 @@ static int post_page_finish (http_context *http)
 	                    board, BAN_TARGET_POST, is_captcha_required)) {
 		struct captcha *captcha = find_captcha_by_id(page->captcha_id);
 		if (!captcha && master_captcha_count(master) <= 0) {
-			PRINT_STATUS_HTML("500 Interner Fehler");
+			PRINT_STATUS_HTML("500 Internal Error");
 			PRINT_BODY();
-			PRINT(S("<h1>500 Interner Fehler</h1>"
-			        "<p>Für die Aktion wird ein Captcha benötigt, aber es sind keine Captchas vorhanden. "
-			        "Wenn du der Administrator bist, überprüfe, ob Captchas in der config.h-Datei aktiviert sind. "
-			        "Sollten Captchas aktiviert sein und dieser Fehler dennoch auftreten, ist beim Generieren der "
-			        "Captchas ein Fehler aufgetreten. Die Log-Ausgabe enthält nähere Informationen.</p>"));
+			PRINT(S("<h1>500 Internal Error</h1>"
+			        "<p>A captcha is required for this action, but there are no captchas enabled. "
+			        "Unless they are activated, in which case check the logs.</p>"));
 			PRINT_EOF();
 			return ERROR;
 		}
 		if (!page->captcha || str_equal(page->captcha, "")) {
-			PRINT_STATUS_HTML("403 Verboten");
+			PRINT_STATUS_HTML("403 Forbidden");
 			PRINT_BODY();
-			PRINT(S("<p>Du hast das Captcha nicht eingegeben.</p>"));
+			PRINT(S("<p>You didn't enter the captcha.</p>"));
 			PRINT_EOF();
 			return ERROR;
 		}
 		if (!captcha || captcha_token(captcha) != page->captcha_token) {
 			PRINT_STATUS_HTML("403 Verboten");
 			PRINT_BODY();
-			PRINT(S("<p>Captcha abgelaufen :(</p>"));
+			PRINT(S("<p>The captcha expired.</p>"));
 			PRINT_EOF();
 			return ERROR;
 		}
@@ -508,9 +506,9 @@ static int post_page_finish (http_context *http)
 			replace_captcha(captcha);
 		else {
 			invalidate_captcha(captcha);
-			PRINT_STATUS_HTML("403 Verboten");
+			PRINT_STATUS_HTML("403 Forbidden");
 			PRINT_BODY();
-			PRINT(S("<p>Dein eingegebenes Captcha stimmt leider nicht :(</p>"));
+			PRINT(S("<p>The answer for the captcha is incorrect.</p>"));
 			PRINT_EOF();
 			return ERROR;
 		}

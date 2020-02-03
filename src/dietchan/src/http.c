@@ -43,7 +43,7 @@ static ssize_t http_read_multipart_header(http_context *http, char *buf, size_t 
 static ssize_t http_read_multipart_content(http_context *http, char *buf, size_t length);
 
 const http_error BAD_REQUEST           = {400, "Bad Request"};
-const http_error FORBIDDEN             = {403, "Verboten"};
+const http_error FORBIDDEN             = {403, "Forbidden"};
 const http_error NOT_FOUND             = {404, "Not Found"};
 const http_error METHOD_NOT_ALLOWED    = {405, "Method Not Allowed"};
 const http_error ENTITY_TOO_LARGE      = {413, "Request Entity Too Large"};

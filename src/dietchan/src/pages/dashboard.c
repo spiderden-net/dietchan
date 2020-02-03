@@ -51,7 +51,7 @@ void write_dashboard_header(http_context *http, uint64 user_id)
 	PRINT(S("<!DOCTYPE html>"
 	        "<html>"
 	          "<head>"
-	            "<title>Kontrollzentrum</title>"
+	            "<title>Control Panel</title>"
 	            "<style>"
 	              "body {"
 	                "background: #fff;"
@@ -154,13 +154,13 @@ void write_dashboard_header(http_context *http, uint64 user_id)
 	          "<body>"
 	            "<div style='float:right'>"
 	              "<a href='"), S(PREFIX), S("/edit_user?action=edit&user_id="), U64(user_id), S("'>"
-	                "Konto bearbeiten"
+	                "Edit Account"
 	              "</a> "
 	            "<a href='"),S(PREFIX), S("/login?logout&redirect="), S(PREFIX), S("/login'>"
-	              "Ausloggen"
+	              "Logout"
 	            "</a>"
 	          "</div>"
-	          "<h1>Kontrollzentrum</h1>"));
+	          "<h1>Control Panel</h1>"));
 }
 
 void write_dashboard_footer(http_context *http)
@@ -186,7 +186,7 @@ static int  dashboard_page_finish (http_context *http)
 
 	// Board list
 	if (user_type(page->user) == USER_ADMIN) {
-		PRINT(S("<h2>Bretter</h2>"
+		PRINT(S("<h2>Boards</h2>"
 		           "<p>"
 		           "<table>"
 		             "<tr><th>Name (URL)</th><th>Title</th><th></th></tr>"));
@@ -207,8 +207,8 @@ static int  dashboard_page_finish (http_context *http)
 			        "</tr>"));
 		}
 		PRINT(S("</table></p>"
-		        "<p><a class='button' href='"), S(PREFIX), S("/edit_board?action=add'>Neues Brett hinzufügen</a></p>"
-		        "<h2>Benutzer</h2>"
+		        "<p><a class='button' href='"), S(PREFIX), S("/edit_board?action=add'>Add new board</a></p>"
+		        "<h2>Bans</h2>"
 		        "<p>"
 		        "<table>"
 		          "<tr><th>Name</th><th>Rolle</th><th>Bretter</th><td></td></tr>"));
@@ -223,7 +223,7 @@ static int  dashboard_page_finish (http_context *http)
 			switch (user_type(user)) {
 				case USER_ADMIN: PRINT(S("<span class='admin'>Admin</span>"));    break;
 				case USER_MOD:   PRINT(S("<span class='mod'>Mod</span>"));        break;
-				default:         PRINT(S("<span class='other'>Sonstige</span>")); break;
+				default:         PRINT(S("<span class='other'>Other</span>")); break;
 			}
 			PRINT(S(  "</td>"
 			          "<td>"));
@@ -246,19 +246,19 @@ static int  dashboard_page_finish (http_context *http)
 			}
 			PRINT(S(  "</td>"
 			          "<td>"
-			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=edit&amp;user_id="), U64(user_id(user)), S("'>Bearbeiten</a>"
+			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=edit&amp;user_id="), U64(user_id(user)), S("'>To Edit</a>"
 			            "<span class='space'> </span>"
-			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=delete&amp;user_id="), U64(user_id(user)), S("'>Löschen</a>"
+			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=delete&amp;user_id="), U64(user_id(user)), S("'>Clear</a>"
 			          "</td>"
 			        "</tr>"));
 		}
 		PRINT(S(  "</table></p>"
-		          "<p><a class='button' href='"), S(PREFIX), S("/edit_user?action=add'>Neuen Benutzer hinzufügen</a></p>"));
+		          "<p><a class='button' href='"), S(PREFIX), S("/edit_user?action=add'>Add new user</a></p>"));
 	}
 
 	// Reports
 	if (user_type(page->user) == USER_ADMIN || user_type(page->user) == USER_MOD) {
-		PRINT(S("<h2>Meldungen</h2>"));
+		PRINT(S("<h2>Reports</h2>"));
 
 		int any_report=0;
 		for (struct report *report = master_last_report(master); report; report=report_prev_report(report)) {
@@ -271,7 +271,7 @@ static int  dashboard_page_finish (http_context *http)
 				           "<input type='hidden' name='redirect' value='"), S(PREFIX), S("/dashboard'>"
 				           "<p>"
 				           "<table>"
-				             "<tr><th></th><th>Datum</th><th>Brett</th><th>Beitrag</th><th>Vorschau</th><th>Grund</th><th>Kommentar</th></tr>"));
+				             "<tr><th></th><th>Date</th><th>Board</th><th>Post</th><th>Preview</th><th>Basic</th><th>Comment</th></tr>"));
 			}
 			struct thread *thread = find_thread_by_id(report_thread_id(report));
 			struct post *post = find_post_by_id(report_post_id(report));
@@ -286,15 +286,15 @@ static int  dashboard_page_finish (http_context *http)
 				PRINT(S(       "'>&gt;&gt;"), U64(report_post_id(report)), S("</a></td><td>"));
 				print_post(http, post, 1, WRITE_POST_IP | WRITE_POST_USER_AGENT);
 			} else {
-				PRINT(S("</td><td><i>gelöscht</i>"));
+				PRINT(S("</td><td><i>deleted</i>"));
 			}
 
 			PRINT(S(  "</td>"
 			          "<td>"));
 			switch (report_type(report)) {
 				case REPORT_SPAM: PRINT(S("Spam")); break;
-				case REPORT_ILLEGAL: PRINT(S("Illegal Inhalte")); break;
-				case REPORT_OTHER: PRINT(S("Sonstiges")); break;
+				case REPORT_ILLEGAL: PRINT(S("Illegal Content")); break;
+				case REPORT_OTHER: PRINT(S("Other")); break;
 			}
 			PRINT(S(  "</td>"
 			          "<td>"), report_comment(report)?E(report_comment(report)):S(""), S(
@@ -305,22 +305,22 @@ static int  dashboard_page_finish (http_context *http)
 			PRINT(S("</table></p>"
 			        "<p>"
 			        "<select name='action'>"
-			          "<option value='delete'>Post löschen</option>"
-			          "<option value='ban'>Bannen</option>"
-			          "<option value='delete_and_ban'>Post löschen + Bannen</option>"
-			          "<option value='delete_report'>Meldung löschen</option>"
+			          "<option value='delete'>Delete post</option>"
+			          "<option value='ban'>Ban</option>"
+			          "<option value='delete_and_ban'>Delete Post and Ban</option>"
+			          "<option value='delete_report'>Delete Report</option>"
 			        "</select> "
-			        "<input type='submit' value='Ausführen'>"
+			        "<input type='submit' value='Submit'>"
 			        "</p>"
 			        "</form>"));
 		} else {
-			PRINT(S("<p><i>Keine Meldungen</i></p>"));
+			PRINT(S("<p><i>No messages</i></p>"));
 		}
 	}
 
 	// Ban list
 	if (user_type(page->user) == USER_ADMIN || user_type(page->user) == USER_MOD) {
-		PRINT(S("<h2>Banne</h2>"));
+		PRINT(S("<h2>Spells</h2>"));
 		int any_ban = 0;
 		for (struct ban *ban = master_last_ban(master); ban; ban=ban_prev_ban(ban)) {
 			if (!can_see_ban(page->user, ban))
@@ -336,7 +336,7 @@ static int  dashboard_page_finish (http_context *http)
 				any_ban = 1;
 				PRINT(S("<p>"
 				        "<table>"
-				          "<tr><th>IP-Bereich</th><th>Art</th><th>Bretter</th><th>Gesperrt seit</th><th>Gesperrt bis</th><th>Grund</th><td></td></tr>"));
+				          "<tr><th>IP Range</th><th>Art</th><th>Bretter</th><th>Gesperrt seit</th><th>Gesperrt bis</th><th>Grund</th><td></td></tr>"));
 			}
 
 			PRINT(S("<tr>"
@@ -345,7 +345,7 @@ static int  dashboard_page_finish (http_context *http)
 			          "</td>"
 			          "<td>"));
 			switch (ban_type(ban)) {
-				case BAN_BLACKLIST:         PRINT(S("Bann"));        break;
+				case BAN_BLACKLIST:         PRINT(S("Ban"));         break;
 				case BAN_FLOOD:             PRINT(S("Anti-Flood"));  break;
 				case BAN_CAPTCHA_ONCE:      PRINT(S("Captcha (1)")); break;
 				case BAN_CAPTCHA_PERMANENT: PRINT(S("Captcha")); break;
@@ -371,7 +371,7 @@ static int  dashboard_page_finish (http_context *http)
 			PRINT(S(  "</td>"
 			          "<td>"), HTTP_DATE(ban_timestamp(ban)), S("</td>"
 			          "<td>"),
-			            (ban_duration(ban) >= 0)?HTTP_DATE(ban_timestamp(ban) + ban_duration(ban)):S("Unbegrenzt"), S(
+			            (ban_duration(ban) >= 0)?HTTP_DATE(ban_timestamp(ban) + ban_duration(ban)):S("Unlimited"), S(
 			          "</td>"
 			          "<td>"),
 			            ban_reason(ban)?E(ban_reason(ban)):S(""), S(
@@ -383,8 +383,8 @@ static int  dashboard_page_finish (http_context *http)
 			          "</td>"
 			        "</tr>"));
 		}
-		PRINT(any_ban?S("</table></p>"):S("<p><i>Keine Banne</i></p>"),
-		      S("<p><a class='button' href='"), S(PREFIX), S("/mod?action=ban&amp;redirect="), S(PREFIX), S("/dashboard'>Neuen Bann hinzufügen</a></p>"));
+		PRINT(any_ban?S("</table></p>"):S("<p><i>No spell</i></p>"),
+		      S("<p><a class='button' href='"), S(PREFIX), S("/mod?action=ban&amp;redirect="), S(PREFIX), S("/dashboard'>Add new spell</a></p>"));
 	}
 
 	write_dashboard_footer(http);

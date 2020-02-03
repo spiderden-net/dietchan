@@ -97,7 +97,7 @@ static void edit_user_page_print_form(http_context *http)
 
 	PRINT(S("<h2>"), case_equals(page->action, "add")?S("Benutzer hinzufügen"): S("Benutzer bearbeiten"), S("</h2>"),
 	      (user_id(page->user) == page->user_id)?
-	        S("<p><span class='warning'>Achtung! Du bearbeitest dein eigenes Benutzerkonto</span></p>"):S(""),
+	        S("<p><span class='warning'>Watch out! You're editing your own user account.</span></p>"):S(""),
 	      S("<form method='post'>"
 	          "<input type='hidden' name='action' value='"), E(page->action), S("'>"
 	          "<input type='hidden' name='submitted' value='1'>"
@@ -115,7 +115,7 @@ static void edit_user_page_print_form(http_context *http)
 	                     "<option value='admin'"), (page->user_type == USER_ADMIN)?S(" selected"):S(""), S(">Admin</option>"
 	                   "</select></td>"
 	             "</tr><tr>"
-	               "<th><label for='boards'>Bretter: </label></th>"
+	               "<th><label for='boards'>Boards: </label></th>"
 	               "<td><input type='text' name='boards' value='"));;
 	if (page->boards) {
 		PRINT(E(page->boards));
@@ -141,12 +141,12 @@ static void edit_user_page_print_form(http_context *http)
 	               "<td><input type='password' name='user_password' value='"), E(page->user_password), S("'"),
 	               (case_equals(page->action, "add"))?S(" required"):S(""), S("></td>"
 	             "</tr><tr>"
-	               "<th><label for='user_password_confirm'>Bestätigen: </label></th>"
+	               "<th><label for='user_password_confirm'>Submit: </label></th>"
 	               "<td><input type='password' name='user_password_confirm' value='"), E(page->user_password_confirm), S("'"),
 	               (case_equals(page->action, "add"))?S(" required"):S(""), S("></td>"
 	             "</tr>"
 	           "</table></p>"
-	           "<p><input type='submit' value='Übernehmen'></p></form>"));
+	           "<p><input type='submit' value='Submit'></p></form>"));
 }
 
 static void edit_user_page_print_confirmation(http_context *http)
@@ -157,7 +157,7 @@ static void edit_user_page_print_confirmation(http_context *http)
 	          "<input type='hidden' name='user_id' value='"), I64(page->user_id), S("'>"
 	          "<p><label>"
 	            "<input type='checkbox' name='confirmed' value='1'>"
-	            "Benutzer '"), E(user_name(user)),S("' wirklich löschen."
+	            "Really delete '"), E(user_name(user)),S("'?wirklich"
 	          "</label></p>"
 	          "<p><input type='submit' value='Löschen'></p></form>"));
 }
@@ -171,10 +171,10 @@ static int edit_user_page_finish (http_context *http)
 	if (!page->user ||
 	    !(user_type(page->user) == USER_ADMIN ||
 		  user_id(page->user) == page->user_id)) {
-		PRINT_STATUS_HTML("403 Verboten");
+		PRINT_STATUS_HTML("403 Forbidden");
 		PRINT_SESSION();
-		PRINT(S("<h1>403 Verboten</h1>"
-		        "Du kommst hier nid rein."));
+		PRINT(S("<h1>403 Forbidden</h1>"
+		        "You're not coming in here, bud."));
 		PRINT_EOF();
 		return 0;
 	}
@@ -206,7 +206,7 @@ static int edit_user_page_finish (http_context *http)
 			PRINT_SESSION();
 			PRINT_BODY();
 			write_dashboard_header(http, user_id(page->user));
-			PRINT(S("<span class='error'>Benutzer existiert nicht.</span>"));
+			PRINT(S("<span class='error'>That user doesn't exist.</span>"));
 			write_dashboard_footer(http);
 			return 0;
 	    }
@@ -217,7 +217,7 @@ static int edit_user_page_finish (http_context *http)
 			PRINT_STATUS_HTML("403 Verboten");
 			PRINT_SESSION();
 			PRINT_BODY();
-			PRINT(S("<p>Du kannst dein eigenes Benutzerkonto nicht löschen.</p>"));
+			PRINT(S("<p>You can't delete yourself!</p>"));
 			PRINT_EOF();
 			return 0;
 		}
@@ -240,25 +240,25 @@ static int edit_user_page_finish (http_context *http)
 
 			if (str_equal(page->user_name, "")) {
 				ERROR_HEADER();
-				PRINT(S("<p class='error'>Bitte User-Namen eingeben</p>"));
+				PRINT(S("<p class='error'>Please enter a username.</p>"));
 			}
 
 			if (case_equals(page->action, "add")) {
 				if (str_equal(page->user_password, "")) {
 					ERROR_HEADER();
-					PRINT(S("<p class='error'>Bitte Passwort eingeben</p>"));
+					PRINT(S("<p class='error'>Please enter your password.</p>"));
 				}
 			}
 
 			if (!str_equal(page->user_password, page->user_password_confirm)) {
 				ERROR_HEADER();
-				PRINT(S("<p class='error'>Passwörter stimmen nicht überein.</p>"));
+				PRINT(S("<p class='error'>Those passwords don't match.</p>"));
 			}
 
 			if (find_user_by_name(page->user_name) != user) {
 				ERROR_HEADER();
-				PRINT(S("<p class='error'>Ein Benutzer mit dem Namen '"), E(page->user_name),
-				      S("' existiert bereits. Bitte einen anderen Namen eingeben.</p>"));
+				PRINT(S("<p class='error'>A user by the name of '"), E(page->user_name),
+				      S("' already exists. You'll need to pick another username.</p>"));
 			}
 
 			if (page->boards) {

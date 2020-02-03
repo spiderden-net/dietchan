@@ -84,14 +84,14 @@ static int  login_page_finish (http_context *http)
 		          "<input type='hidden' name='redirect' value='"), E(page->redirect), S("'>"
 		          "<p><table>"
 		            "<tr>"
-		              "<th><label for='username'>Name</label></th>"
+		              "<th><label for='username'>Username</label></th>"
 		              "<td><input type='text' name='username'></td>"
 		            "</tr><tr>"
-		              "<th><label for='password'>Passwort</label></th>"
+		              "<th><label for='password'>Password</label></th>"
 		              "<td><input type='password' name='password'></td>"
 		            "</tr>"
 		          "</table></p>"
-		          "<p><input type='submit' value='Einloggen'></p>"
+		          "<p><input type='submit' value='Login'></p>"
 		        "</form>"));
 		print_bottom_bar(http);
 		print_page_footer(http);
@@ -101,16 +101,16 @@ static int  login_page_finish (http_context *http)
 	if (!page->password || str_equal(page->password, "")) {
 		PRINT_STATUS_HTML("400 Bad Request");
 		PRINT_BODY();
-		PRINT(S("<h1>Du musst ein Passwort eingeben.</h1>"));
+		PRINT(S("<h1>You need to enter a password.</h1>"));
 		PRINT_EOF();
 		return 0;
 	}
 
 	struct user *user = find_user_by_name(page->username);
 	if (!user || !check_password(user_password(user), page->password)) {
-		PRINT_STATUS_HTML("403 Du kommst hier nid rein");
+		PRINT_STATUS_HTML("403 Access Denied");
 		PRINT_BODY();
-		PRINT(S("<h1>Benutzername oder Passwort falsch.</h1>"));
+		PRINT(S("<h1>You're not getting in here, pal.</h1>"));
 		PRINT_EOF();
 		return 0;
 	}

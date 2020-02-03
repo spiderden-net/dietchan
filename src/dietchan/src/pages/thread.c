@@ -113,7 +113,7 @@ static int thread_page_finish (http_context *http)
 		PRINT_SESSION();
 		PRINT_BODY();
 		PRINT(S("<h1>404</h1>"
-		        "<p>Das Brett wurde nicht gefunden :(.<p>"));
+		        "<p>The board wasn't found.<p>"));
 		PRINT_EOF();
 		return 0;
 	}
@@ -129,7 +129,7 @@ static int thread_page_finish (http_context *http)
 		PRINT_SESSION();
 		PRINT_BODY();
 		PRINT(S("<h1>404</h1>"
-		        "<p>Faden existiert nicht :(.<p>"));
+		        "<p>That thread doesn't exist.<p>"));
 		PRINT_EOF();
 		return 0;
 	}
