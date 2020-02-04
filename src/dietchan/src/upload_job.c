@@ -447,7 +447,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 
 		i += fmt_str(&command[i], " -resize ");
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
-		i += fmt_str(&command[i], "x");
+		i += fmt_str(&command[i], "X");
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
 		i += fmt_str(&command[i], "\\> -quality 0 -profile data/sRGB.icc -strip ");
 		i += fmt_str(&command[i], thumb_file);
@@ -467,7 +467,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 
 		i += fmt_str(&command[i], "-define jpeg:size=");
 		i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_WIDTH);
-		i += fmt_str(&command[i], "x");
+		i += fmt_str(&command[i], "X");
 		i += fmt_ulong(&command[i], 2*THUMB_MAX_PHYSICAL_HEIGHT);
 
 		i += fmt_str(&command[i], " -define jpeg:extent=20kb ");
@@ -475,7 +475,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 
 		i += fmt_str(&command[i], " -resize ");
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_WIDTH);
-		i += fmt_str(&command[i], "x");
+		i += fmt_str(&command[i], "X");
 		i += fmt_ulong(&command[i], THUMB_MAX_PHYSICAL_HEIGHT);
 		i += fmt_str(&command[i], "\\>");
 
