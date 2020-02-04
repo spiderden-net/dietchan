@@ -320,7 +320,7 @@ static int  dashboard_page_finish (http_context *http)
 
 	// Ban list
 	if (user_type(page->user) == USER_ADMIN || user_type(page->user) == USER_MOD) {
-		PRINT(S("<h2>Spells</h2>"));
+		PRINT(S("<h2>Bans</h2>"));
 		int any_ban = 0;
 		for (struct ban *ban = master_last_ban(master); ban; ban=ban_prev_ban(ban)) {
 			if (!can_see_ban(page->user, ban))
@@ -383,8 +383,8 @@ static int  dashboard_page_finish (http_context *http)
 			          "</td>"
 			        "</tr>"));
 		}
-		PRINT(any_ban?S("</table></p>"):S("<p><i>No spell</i></p>"),
-		      S("<p><a class='button' href='"), S(PREFIX), S("/mod?action=ban&amp;redirect="), S(PREFIX), S("/dashboard'>Add new spell</a></p>"));
+		PRINT(any_ban?S("</table></p>"):S("<p><i>No bans</i></p>"),
+		      S("<p><a class='button' href='"), S(PREFIX), S("/mod?action=ban&amp;redirect="), S(PREFIX), S("/dashboard'>Ban user</a></p>"));
 	}
 
 	write_dashboard_footer(http);

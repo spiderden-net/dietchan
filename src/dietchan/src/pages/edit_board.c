@@ -79,11 +79,11 @@ static void edit_board_page_print_form(http_context *http)
 	             "<th><label for='board_name'>Name (URL): </label></th>"
 	             "<td><input type='text' name='board_name' value='"), E(page->board_name), S("' required></td>"
 	           "</tr><tr>"
-	             "<th><label for='board_title'>Titel: </label></th>"
+	             "<th><label for='board_title'>Title: </label></th>"
 	             "<td><input type='text' name='board_title' value='"), E(page->board_title), S("'></td>"
 	             "</tr>"
 	           "</table></p>"
-	           "<p><input type='submit' value='Übernehmen'></p>"
+	           "<p><input type='submit' value='Submit'></p>"
 	         "</form>"));
 }
 
@@ -95,7 +95,7 @@ static void edit_board_page_print_confirmation(http_context *http)
 	        "<input type='hidden' name='board_id' value='"), I64(page->board_id), S("'>"
 	        "<p><label>"
 	             "<input type='checkbox' name='confirmed' value='1'>"
-	             "Brett /"), E(board_name(board)), S("/ wirklich löschen."
+	             "Really delete /"), E(board_name(board)), S("/? "
 	        "</label></p>"
 	        "<p><input type='submit' value='Löschen'></p></form>"));
 }
@@ -107,11 +107,11 @@ static int edit_board_page_finish (http_context *http)
 	// Check permission
 
 	if (!page->user || user_type(page->user) != USER_ADMIN) {
-		PRINT_STATUS_HTML("403 Verboten");
+		PRINT_STATUS_HTML("403 Forbidden");
 		PRINT_SESSION();
 		PRINT_BODY();
-		PRINT(S("<h1>403 Verboten</h1>"
-		        "Du kommst hier nid rein."));
+		PRINT(S("<h1>403 Forbidden</h1>"
+		        "You shall not enter!"));
 		PRINT_EOF();
 		return 0;
 	}
@@ -148,7 +148,7 @@ static int edit_board_page_finish (http_context *http)
 				PRINT_SESSION();
 				PRINT_BODY();
 				write_dashboard_header(http,user_id(page->user));
-				PRINT(S("<p class='error'>Bitte Brett-Namen eingeben</p>"));
+				PRINT(S("<p class='error'>Please enter a board name.</p>"));
 				edit_board_page_print_form(http);
 				write_dashboard_footer(http);
 				PRINT_EOF();
@@ -160,8 +160,8 @@ static int edit_board_page_finish (http_context *http)
 				PRINT_SESSION();
 				PRINT_BODY();
 				write_dashboard_header(http, user_id(page->user));
-				PRINT(S("<p class='error'>Ein Brett mit dem Namen '"), E(page->board_name),
-				      S("' existiert bereits. Bitte einen anderen Namen eingeben.</p>"));
+				PRINT(S("<p class='error'>A board with the name '"), E(page->board_name),
+				      S("' already exists. Please enter a different name.</p>"));
 				edit_board_page_print_form(http);
 				write_dashboard_footer(http);
 				PRINT_EOF();
