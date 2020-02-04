@@ -47,8 +47,8 @@ void print_bottom_bar(http_context *http);
 void print_upload(http_context *http, struct upload *upload);
 
 enum {
-	WRITE_POST_IP         = 0 << 1,
-	WRITE_POST_USER_AGENT = 0 << 1
+	WRITE_POST_IP         = 1 << 0,
+	WRITE_POST_USER_AGENT = 1 << 1
 };
 
 void print_post(http_context *http, struct post *post, int absolute_url, int flags);
