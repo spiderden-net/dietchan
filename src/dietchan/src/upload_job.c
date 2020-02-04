@@ -414,7 +414,7 @@ static void thumbnail_command(const char *file, int64 original_width, int64 orig
 		else
 			i += fmt_str(&command[i], "ffmpeg -i ");
 		i += fmt_str(&command[i], file);
-		i += fmt_str(&command[i], " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec png - ");
+		i += fmt_str(&command[i], " -vframes 1 -map 0:v -vf 'thumbnail=5,scale=iw*sar:ih' -f image2pipe -vcodec bmp - ");
 		i += fmt_str(&command[i], " | ");
 		// Call recursively to generate jpg thumbnail from bmp
 		thumbnail_command("-", original_width, original_height, original_duration, "image/jpeg", thumbnail_base, ext, &command[i]);
