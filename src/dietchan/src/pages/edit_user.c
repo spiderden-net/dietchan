@@ -108,7 +108,7 @@ static void edit_user_page_print_form(http_context *http)
 	               "<td><input type='text' name='user_name' value='"), E(page->user_name), S("' required"),
 	               (!can_edit_everything(page))?S(" disabled"):S(""), S("></td>"
 	             "</tr><tr>"
-	               "<th><label for='user_type'>Rolle: </label></th>"
+	               "<th><label for='user_type'>Role: </label></th>"
 	               "<td><select name='user_type' required"),
 	               (!can_edit_everything(page))?S(" disabled"):S(""), S(">"
 	                     "<option value='mod'"),   (page->user_type == USER_MOD)?S(" selected"):S(""),   S(">Mod</option>"
@@ -137,7 +137,7 @@ static void edit_user_page_print_form(http_context *http)
 	               "<th><label for='user_email'>E-Mail: </label></th>"
 	               "<td><input type='text' name='user_email' value='"), E(page->user_email), S("' optional></td>"
 	             "</tr></tr>"
-	               "<th><label for='user_password'>Passwort: </label></th>"
+	               "<th><label for='user_password'>Password: </label></th>"
 	               "<td><input type='password' name='user_password' value='"), E(page->user_password), S("'"),
 	               (case_equals(page->action, "add"))?S(" required"):S(""), S("></td>"
 	             "</tr><tr>"
