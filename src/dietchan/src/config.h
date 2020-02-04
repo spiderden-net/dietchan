@@ -24,7 +24,7 @@
 
 // -- Bans --
 
-#define DEFAULT_BAN_MESSAGE "BENUTZER WURDE FÜR DIESEN BEITRAG GEBANNT"
+#define DEFAULT_BAN_MESSAGE "THIS USER WAS BANNED FOR THIS POST"
 
 // -- Boards --
 
@@ -38,16 +38,16 @@
 // -- Threads --
 
 // Thread will go on autosage after this many posts
-#define BUMP_LIMIT                      100
+#define BUMP_LIMIT                      300
 // Absolute limit of how many posts a thread can have. When reaching this limit, it is automatically
 // closed.
-#define POST_LIMIT                     1000
+#define POST_LIMIT                     500
 
 // -- Posts --
 #define POST_MAX_BODY_LENGTH          10000
 #define POST_MAX_SUBJECT_LENGTH         100
 #define POST_MAX_NAME_LENGTH            100
-#define DEFAULT_NAME                "Felix"
+#define DEFAULT_NAME                "Anonymous"
 
 // -- Uploads --
 // Maximum filename length of an uploaded file
@@ -61,12 +61,12 @@
 
 // -- Thumbnails --
 // Maximum resolution of generated thumbnails
-#define THUMB_MAX_PHYSICAL_WIDTH        400
-#define THUMB_MAX_PHYSICAL_HEIGHT       400
+#define THUMB_MAX_PHYSICAL_WIDTH        600
+#define THUMB_MAX_PHYSICAL_HEIGHT       600
 // Maximum dimensions of thumbnails as displayed in the HTML. It is a good idea to have a greater
 // physical resolution and scale the image down in the browser because of HiDPI monitors.
-#define THUMB_MAX_DISPLAY_WIDTH         200
-#define THUMB_MAX_DISPLAY_HEIGHT        200
+#define THUMB_MAX_DISPLAY_WIDTH         350
+#define THUMB_MAX_DISPLAY_HEIGHT        350
 // Backend to use for thumbnail generation:
 // - ImageMagick 6/7
 #define MAGICK_COMMAND                   ""
@@ -81,7 +81,7 @@
 // -- Captcha --
 // Whether the captcha feature is enabled. 0=disabled, 1=enabled.
 // Note that to actually use the captcha, you have to create a ban in the control panel and set the type to "captcha".
-#define ENABLE_CAPTCHA                    0
+#define ENABLE_CAPTCHA                    1
 // Captchas are pregenerated and randomly picked from this pool. Only correctly solved captchas are
 // removed from the pool. This is so an attacker can't easily ddos the server by forcing it to constantly 
 // generate new captchas.
@@ -90,7 +90,7 @@
 // happening, you should probably increase the pool size by an order of magnitude or more. 
 // As an additional countermeasure, we could also add a timeout value to generated captchas or throttle 
 // repeated captcha requests from the same IP, but this is not currently implemented.
-#define CAPTCHA_POOL_SIZE              1000
+#define CAPTCHA_POOL_SIZE              600
 // Max number of parallel processes used for generating new captchas.
 #define CAPTCHA_WORKERS                   4
 
