@@ -269,17 +269,17 @@ static int  mod_page_finish (http_context *http)
 	int do_something_with_post = do_ban || do_delete || do_close || do_pin || do_report;
 
 	if (!page->user && (do_ban || do_close || do_pin || do_delete_report)) {
-		PRINT_STATUS_HTML("403 Verboten");
+		PRINT_STATUS_HTML("403 Forbidden");
 		PRINT_BODY();
-		PRINT(S("<p>Netter Versuch.</p><p><small><a href='"),S(PREFIX),S("/login'>Sitzung abgelaufen?</a></small></p>"));
+		PRINT(S("<p>Nice try.</p><p><small><a href='"),S(PREFIX),S("/login'>Session expired</a></small></p>"));
 		PRINT_EOF();
 		goto cleanup;
 	}
 
 	if (ban && !can_see_ban(page->user, ban)) {
-		PRINT_STATUS_HTML("403 Verboten");
+		PRINT_STATUS_HTML("403 Forbidden");
 		PRINT_BODY();
-		PRINT(S("<p>Du hast keine Zugriffsrechte für diesen Bann.</p>"));
+		PRINT(S("<p>You cannot see this ban.</p>"));
 		PRINT_EOF();
 		goto cleanup;
 	}
@@ -363,7 +363,7 @@ static int  mod_page_finish (http_context *http)
 	if (do_ban && page->submitted) {
 		if (str_equal(page->duration, "") ||
 			page->duration[scan_duration(page->duration, &duration)] != '\0') {
-			PRINT(S("<p class='error'>Ungültige Bann-Dauer</p>"));
+			PRINT(S("<p class='error'>Invalid ban duration.</p>"));
 			do_it = 0;
 		}
 	}
@@ -373,34 +373,34 @@ static int  mod_page_finish (http_context *http)
 	ssize_t range_count = array_length(&ranges, sizeof(struct ip_range));
 	if (do_ban && page->submitted) {
 		if (range_count <= 0) {
-			PRINT(S("<p class='error'>Es muss mindestens eine IP-Adresse eingegeben werden.</p>"));
+			PRINT(S("<p class='error'>At least one IP address must be entered.</p>"));
 			do_it = 0;
 		}
 
 		if (!page->global && boards_count <= 0) {
-			PRINT(S("<p class='error'>Es muss mindestens ein Brett angegeben werden.</p>"));
+			PRINT(S("<p class='error'>At least one board must be specified.</p>"));
 			do_it = 0;
 		}
 	}
 	if (do_delete_ban) {
 		if (!ban) {
-			PRINT(S("<p class='error'>Bann existiert nicht.</p>"));
+			PRINT(S("<p class='error'>Ban does not exist.</p>"));
 			do_it = 0;
 		}
 		if (!can_delete_ban(page->user,ban)) {
-			PRINT(S("<p class='error'>Du kannst diesen Bann nicht löschen.</p>"));
+			PRINT(S("<p class='error'>You can't delete this ban.</p>"));
 			do_it = 0;
 		}
 	}
 
 	if ((do_delete || do_report || do_pin || do_close) && post_count <= 0) {
-		PRINT(S("<p>Kein Post ausgewählt.</p>"));
+		PRINT(S("<p>No post selected.</p>"));
 		do_it = 0;
 	}
 	
 	if (case_equals(page->ban_type, "captcha") && master_captcha_count(master)==0) {
-		PRINT(S("<p class='error'><b>Achtung! Es sind keine Captchas vorhanden.</b> Die Captcha-Funktion ist entweder "
-		        "in der config.h-Datei deaktiviert, oder es ist beim Generieren der Captchas ein Fehler aufgetreten.</p>"));
+		PRINT(S("<p class='error'><b>Oh No!"
+		        "Something went wrong while generating the captcha.</p>"));
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -528,8 +528,8 @@ static int  mod_page_finish (http_context *http)
 					// This is a problem: Ban has no boards. Can happen. Bail out.
 					ban_free(ban);
 					ban = 0;
-					PRINT(S("<p>Ungültiger Bann. Der Bann enthält keine gültigen Bretter (möglicherweise"
-					        " hast du Bretter angegeben, für die du keine Moderationsrechte besitzt). Verworfen.</p>"));
+					PRINT(S("<p>Invalid ban. The ban does not contain any valid boards."
+					        "You may have chosen a board that you don't have any permission to moderate. </p>"));
 				}
 			} else if (user_boards(page->user)) {
 				// Not a global mod, restrict "global" ban to boards the user has access to
@@ -551,9 +551,9 @@ static int  mod_page_finish (http_context *http)
 					update_ban(ban);
 
 				if (case_equals(page->action, "ban") || case_equals(page->action, "delete_and_ban")) {
-					PRINT(S("<p>Bann erstellt</p>"));
+					PRINT(S("<p>Ban created.</p>"));
 				} else {
-					PRINT(S("<p>Bann geändert</p>"));
+					PRINT(S("<p>Ban changed.</p>"));
 				}
 
 				ban = 0;
@@ -678,7 +678,7 @@ static int  mod_page_finish (http_context *http)
 				}
 				if (do_delete) {
 					if (!can_delete_post(page, post)) {
-						PRINT(S("<p>Post "), U64(*id), S(" NICHT gelöscht. Falsches Passwort.</p>"));
+						PRINT(S("<p>Post "), U64(*id), S(" not deleted. Incorrect password entered.</p>"));
 						continue;
 					}
 
@@ -711,7 +711,7 @@ static int  mod_page_finish (http_context *http)
 	// Delete ban
 	if (do_delete_ban && do_it) {
 		delete_ban(ban);
-		PRINT(S("<p>Bann gelöscht.</p>"));
+		PRINT(S("<p>Ban deleted.</p>"));
 	}
 
 	if (do_it)
@@ -724,11 +724,11 @@ static int  mod_page_finish (http_context *http)
 		// Ban form
 		if (do_ban && can_see_ban(page->user, ban)) {
 			if (do_delete)
-				PRINT(S("<h1>Bannen &amp; Löschen</h1>"));
+				PRINT(S("<h1>Ban &amp; Clear</h1>"));
 			else if (ban)
-				PRINT(S("<h1>Bann bearbeiten</h1>"));
+				PRINT(S("<h1>Edit ban</h1>"));
 			else
-				PRINT(S("<h1>Bannen</h1>"));
+				PRINT(S("<h1>Ban</h1>"));
 
 			if (array_bytes(&page->posts) != 0)
 				PRINT(S("<p>"), U64(post_count), S(" Post(s)</p>"));
@@ -737,7 +737,7 @@ static int  mod_page_finish (http_context *http)
 
 			if (ban) {
 				PRINT(S("<tr>"
-				          "<th><label for='enabled'>Aktiv</label></th>"
+				          "<th><label for='enabled'>Active</label></th>"
 				          "<td colspan='3'><input type='checkbox' name='enabled' id='enabled' value='1'"),
 				          ban_enabled(ban)?S(" checked"):S(""), S(">"
 				          "</td>"
@@ -745,7 +745,7 @@ static int  mod_page_finish (http_context *http)
 			}
 			if (ban || !array_bytes(&page->posts)) {
 				PRINT(S("<tr>"
-				          "<th><label>Gilt für</label></th>"
+				          "<th><label>Applies to</label></th>"
 				          "<td colspan='3'>"
 				            "<select name='ban_target'>"
 				              "<option value='posts'"),   (case_equals(page->ban_target, "posts"))?S(" selected"):S(""),   S(">Posts</option>"
@@ -755,10 +755,10 @@ static int  mod_page_finish (http_context *http)
 				          "</td>"
 				        "</tr>"
 				        "<tr>"
-				          "<th><label>Bann-Art</label></th>"
+				          "<th><label>Ban type</label></th>"
 				          "<td colspan='3'>"
 				            "<select name='ban_type'>"
-				              "<option value='blacklist'"), (case_equals(page->ban_type, "blacklist"))?S(" selected"):S(""), S(">Bann</option>"
+				              "<option value='blacklist'"), (case_equals(page->ban_type, "blacklist"))?S(" selected"):S(""), S(">Posting</option>"
 				              "<option value='captcha'"), (case_equals(page->ban_type, "captcha"))?S(" selected"):S(""), S(">Captcha</option>"
 				            "</select>"
 				          "</td>"
@@ -784,7 +784,7 @@ static int  mod_page_finish (http_context *http)
 			              "</td>"
 			            "</tr>"
 			            "<tr>"
-			              "<th rowspan='2'><label>Bretter</label></th>"
+			              "<th rowspan='2'><label>Scope</label></th>"
 			              "<td colspan='3'>"
 			                "<input type='radio' name='global' value='1' id='global-1'"), page->global?S(" checked"):S(""),S(">"
 			                "<label for='global-1'>Global</label>"
@@ -793,7 +793,7 @@ static int  mod_page_finish (http_context *http)
 			            "<tr>"
 			              "<td colspan='2'>"
 			                "<input type='radio' name='global' value='0' id='global-0'"), (!page->global)?S(" checked"):S(""),S(">"
-			                "<label for='global-0'>Folgende:</label>"
+			                "<label for='global-0'>Local:</label>"
 			              "</td>"
 			              "<td>"
 			                "<input type='text' name='boards' value='"));
@@ -820,12 +820,12 @@ static int  mod_page_finish (http_context *http)
 			}
 			PRINT(S(    "</tr>"
 			          "</table></p>"
-			          "<p><input type='submit' value='Übernehmen'></p>"));
+			          "<p><input type='submit' value='Submit'></p>"));
 		}
 		// "Delete ban" form
 		if (do_delete_ban) {
 			PRINT(S("<p><input type='checkbox' name='submitted' id='submitted' value='1'>"
-			           "<label for='submitted'>Clear the spell</label></p>"
+			           "<label for='submitted'>Clear the ban</label></p>"
 			         "<p><input type='submit' value='Clear'></p>"));
 		}
 
@@ -839,7 +839,7 @@ static int  mod_page_finish (http_context *http)
 			        "</select></p>"
 			        "<p><label for='comment'>Comment</label><br>"
 			        "<input type='text' name='comment'></p>"
-			        "<p><input type='submit' value='Petzen'></p>"));
+			        "<p><input type='submit' value='Submit'></p>"));
 		}
 
 		// Remember reports

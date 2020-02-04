@@ -99,7 +99,7 @@ static void write_thread_nav(http_context *http, struct thread *thread)
 	struct board *board = thread_board(thread);
 
 	PRINT(S("<div class='thread-nav'>"
-	          "<a href='"), S(PREFIX), S("/"), E(board_name(board)), S("/'>[Zurück]</a>"
+	          "<a href='"), S(PREFIX), S("/"), E(board_name(board)), S("/'>[Return]</a>"
 	        "</div>"));
 }
 

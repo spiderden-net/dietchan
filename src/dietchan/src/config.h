@@ -16,9 +16,9 @@
 // -- Flood limits --
 
 // Number of seconds to wait between creating two posts (seconds)
-#define FLOOD_LIMIT                      10
+#define FLOOD_LIMIT                      12
 // Number of seconds to wait between creating two reports (seconds)
-#define REPORT_FLOOD_LIMIT               10
+#define REPORT_FLOOD_LIMIT               30
 // Ignore local IP addresses like 127.0.0.1 for flood limits. Useful when using a reverse-proxy.
 #define FLOOD_IGNORE_LOCAL_IP             1
 
@@ -76,7 +76,7 @@
 //#define MAGICK_COMMAND               "gm"
 
 // -- Reports --
-#define REPORT_MAX_COMMENT_LENGTH       100
+#define REPORT_MAX_COMMENT_LENGTH       500
 
 // -- Captcha --
 // Whether the captcha feature is enabled. 0=disabled, 1=enabled.

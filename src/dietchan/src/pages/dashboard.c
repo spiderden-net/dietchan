@@ -200,9 +200,9 @@ static int  dashboard_page_finish (http_context *http)
 			              "<span class='space'> </span>"
 			              "<a class='button' href='"), S(PREFIX), S("/edit_board?action=move&amp;move=1&amp;board_id="), U64(board_id(board)), S("'>▼</a>"
 			              "<span class='space'> </span>"
-			              "<a class='button' href='"), S(PREFIX), S("/edit_board?action=edit&amp;board_id="), U64(board_id(board)), S("'>Bearbeiten</a>"
+			              "<a class='button' href='"), S(PREFIX), S("/edit_board?action=edit&amp;board_id="), U64(board_id(board)), S("'>Edit</a>"
 			              "<span class='space'> </span>"
-			              "<a class='button' href='"), S(PREFIX), S("/edit_board?action=delete&amp;board_id="), U64(board_id(board)), S("'>Löschen</a>"
+			              "<a class='button' href='"), S(PREFIX), S("/edit_board?action=delete&amp;board_id="), U64(board_id(board)), S("'>Delete</a>"
 			          "</td>"
 			        "</tr>"));
 		}
@@ -211,7 +211,7 @@ static int  dashboard_page_finish (http_context *http)
 		        "<h2>Bans</h2>"
 		        "<p>"
 		        "<table>"
-		          "<tr><th>Name</th><th>Rolle</th><th>Bretter</th><td></td></tr>"));
+		          "<tr><th>Name</th><th>Role</th><th>Boards</th><td></td></tr>"));
 	}
 
 	// User list
@@ -246,7 +246,7 @@ static int  dashboard_page_finish (http_context *http)
 			}
 			PRINT(S(  "</td>"
 			          "<td>"
-			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=edit&amp;user_id="), U64(user_id(user)), S("'>To Edit</a>"
+			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=edit&amp;user_id="), U64(user_id(user)), S("'>Edit</a>"
 			            "<span class='space'> </span>"
 			            "<a class='button' href='"), S(PREFIX), S("/edit_user?action=delete&amp;user_id="), U64(user_id(user)), S("'>Clear</a>"
 			          "</td>"
@@ -336,7 +336,7 @@ static int  dashboard_page_finish (http_context *http)
 				any_ban = 1;
 				PRINT(S("<p>"
 				        "<table>"
-				          "<tr><th>IP Range</th><th>Art</th><th>Bretter</th><th>Gesperrt seit</th><th>Gesperrt bis</th><th>Grund</th><td></td></tr>"));
+				          "<tr><th>IP Range</th><th>Art</th><th>Board</th><th>Banned Since</th><th>Banned Until</th><th>Reason</th><td></td></tr>"));
 			}
 
 			PRINT(S("<tr>"
@@ -377,9 +377,9 @@ static int  dashboard_page_finish (http_context *http)
 			            ban_reason(ban)?E(ban_reason(ban)):S(""), S(
 			          "</td>"
 			          "<td>"
-			            "<a class='button' href='"), S(PREFIX), S("/mod?action=edit_ban&amp;redirect="), S(PREFIX), S("/dashboard&amp;ban_id="), U64(ban_id(ban)), S("'>Bearbeiten</a>"
+			            "<a class='button' href='"), S(PREFIX), S("/mod?action=edit_ban&amp;redirect="), S(PREFIX), S("/dashboard&amp;ban_id="), U64(ban_id(ban)), S("'>Edit</a>"
 			            "<span class='space'> </span>"
-			            "<a class='button' href='"), S(PREFIX), S("/mod?action=delete_ban&amp;redirect="), S(PREFIX), S("/dashboard&amp;ban_id="), U64(ban_id(ban)), S("'>Löschen</a>"
+			            "<a class='button' href='"), S(PREFIX), S("/mod?action=delete_ban&amp;redirect="), S(PREFIX), S("/dashboard&amp;ban_id="), U64(ban_id(ban)), S("'>Clear</a>"
 			          "</td>"
 			        "</tr>"));
 		}

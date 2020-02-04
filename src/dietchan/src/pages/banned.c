@@ -64,12 +64,12 @@ static void banned_page_ban_callback(struct ban *ban, struct ip *ip, void *extra
 		normalize_ip_range(&range);
 
 		if (!page->any_ban)
-			banned_page_print_header(http, "Gebannt");
+			banned_page_print_header(http, "You have been banned.");
 		PRINT(S("<div class='ban'>"
 		        "<p>Your IP ("), IP(*ip), S(") belongs to the subnet "), IP(range.ip), S("/"), I64(range.range), S(
 		        ", which was banned for the following reason:</p>"
 		        "<p>"), ban_reason(ban)?E(ban_reason(ban)):S("<i>No reason given.</i>"), S("</p>"
-		        "<p>Bretter: "));
+		        "<p>Boards: "));
 		if (!bids) {
 			PRINT(S("alle.jpg"));
 		} else {
@@ -83,8 +83,8 @@ static void banned_page_ban_callback(struct ban *ban, struct ip *ip, void *extra
 			}
 		}
 		PRINT(S("<br>"
-		        "Gebannt seit: "), HTTP_DATE(ban_timestamp(ban)), S("<br>"
-		        "Gebannt bis: "),  ban_duration(ban)<=0?S("<i>Unlimited</i>"):HTTP_DATE(ban_timestamp(ban)+ban_duration(ban)), S(
+		        "Banned since: "), HTTP_DATE(ban_timestamp(ban)), S("<br>"
+		        "Banned until: "),  ban_duration(ban)<=0?S("<i>Unlimited</i>"):HTTP_DATE(ban_timestamp(ban)+ban_duration(ban)), S(
 		        "</p>"
 		        "</div>"));
 

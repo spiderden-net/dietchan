@@ -150,9 +150,9 @@ void print_top_bar(http_context *http, struct user *user, const char *url)
 	if (user) {
 		if (user_type(user) == USER_ADMIN || user_type(user) == USER_MOD)
 			PRINT(S("<a href='"), S(PREFIX), S("/dashboard'>Control Panel</a><span class='space'> </span>"));
-		PRINT(S("<a href='"), S(PREFIX), S("/login?logout&amp;redirect="), E(url), S("'>Login</a>"));
+		PRINT(S("<a href='"), S(PREFIX), S("/login?logout&amp;redirect="), E(url), S("'>Log out</a>"));
 	} else {
-		PRINT(S("<a href='"), S(PREFIX), S("/login?redirect="), E(url), S("'>Einloggen</a>"));
+		PRINT(S("<a href='"), S(PREFIX), S("/login?redirect="), E(url), S("'>Login</a>"));
 	}
 	PRINT(S("</div>"));
 	print_board_bar(http);
@@ -178,10 +178,10 @@ void print_mod_bar(http_context *http, int ismod)
 		            "<input type='password' name='password' autocomplete='password'>"
 		          "</span><span class='space'> </span>"
 		          "<span class='segment'>"
-		            "<button name='action' value='delete'>Löschen</button>"
+		            "<button name='action' value='delete'>Delete</button>"
 		          "</span><span class='space'> </span>"
 		          "<span class='segment'>"
-		            "<button name='action' value='report'>Petzen</button>"
+		            "<button name='action' value='report'>Report</button>"
 		          "</span>"
 		        "</div>"));
 	} else {
@@ -421,8 +421,8 @@ void write_page_css(http_context *http)
 	        "}"
 	        ".username {"
 	          "font-weight: bold;"
-	          "color: #35f;"
-	        "}"
+            "font-style:italic;"
+          "}"
 	        ".mod {"
 	          "color: #c0f;"
 	        "}"
@@ -603,7 +603,7 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 	PRINT(S(          "<span class='space'> </span>"
 	                  "<span class='time'>"), HTTP_DATE(post_timestamp(post)), S("</span>"
 	                  "<span class='space'> </span>"
-	                  "<span class='number'>Nr. "), U64(post_id(post)), S("</span>"
+	                  "<span class='number'>No. "), U64(post_id(post)), S("</span>"
 	                  "<span class='space'> </span>"),
 	                  (post_sage(post))?
 	                    S("<span class='sage'>SÄGE</span>"):S(""),
