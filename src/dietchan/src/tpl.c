@@ -449,7 +449,7 @@ void print_page_footer(http_context *http)
 {
 	PRINT(S(    "<div class='footer'>"
 	              "This site is a spiderden project.<br>"
-	              "<small><a href='https://gitgud.io/zuse/dietchan'>Source Code</a></small>"
+	              "<small><a href='https://gitgud.io/spiderden/dietchan'>Source Code</a></small>"
 	            "</div>"
 	          "</body>"
 	        "</html>"));
