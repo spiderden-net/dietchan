@@ -110,7 +110,7 @@ void print_reply_form(http_context *http, struct board *board, struct thread *th
 		            "<input type='checkbox' name='pin' id='reply-pin' value='1'> "
 		            "<label for='reply-pin'>Pin</label> "
 		            "<input type='checkbox' name='close' id='reply-close' value='1'> "
-		            "<label for='reply-pin'>Done.</label>"
+		            "<label for='reply-pin'>Close Replies</label>"
 		          "</td>"
 		        "</tr>"));
 	}
@@ -610,7 +610,7 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 	                  (thread_pinned(thread) && thread_first_post(thread) == post)?
 	                    S("<span class='sticky'>Klebrig</span><span class='space'> </span>"):S(""),
 	                  (thread_closed(thread) && thread_first_post(thread) == post)?
-	                    S("<span class='closed'>Geschlossen</span><span class='space'> </span>"):S(""), S(
+	                    S("<span class='closed'>Closed</span><span class='space'> </span>"):S(""), S(
 	                "</div>"
 	                "<div class='content'>"));
 	struct upload *up = post_first_upload(post);
