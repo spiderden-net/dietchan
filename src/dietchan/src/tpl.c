@@ -608,7 +608,7 @@ void print_post(http_context *http, struct post *post, int absolute_url, int fla
 	                  (post_sage(post))?
 	                    S("<span class='sage'>SAGE</span>"):S(""),
 	                  (thread_pinned(thread) && thread_first_post(thread) == post)?
-	                    S("<span class='sticky'>Klebrig</span><span class='space'> </span>"):S(""),
+	                    S("<span class='sticky'>Pinned</span><span class='space'> </span>"):S(""),
 	                  (thread_closed(thread) && thread_first_post(thread) == post)?
 	                    S("<span class='closed'>Closed</span><span class='space'> </span>"):S(""), S(
 	                "</div>"
