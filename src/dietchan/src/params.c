@@ -21,7 +21,7 @@ size_t parse_boards(http_context *http, char *s, array *boards, int *ok)
 		struct board *board = find_board_by_name(&s[i]);
 		if (!board) {
 			if (http)
-				PRINT(S("<p class='error'>Brett existiert nicht: /"), E(&s[i]), S("/</p>"));
+				PRINT(S("<p class='error'>Board does not exist: /"), E(&s[i]), S("/</p>"));
 			*ok = 0;
 			i += d;
 			continue;
