@@ -271,7 +271,7 @@ void strip_bbcode(char *buf)
 			break;
 		case '\n':
 			*t++ = '\n';
-			while (isspace(*t))
+			while (isspace(*s))
 				++s;
 			break;
 		case '[':
