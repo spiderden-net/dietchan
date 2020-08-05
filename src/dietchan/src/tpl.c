@@ -508,7 +508,17 @@ void print_upload(http_context *http, struct upload *upload)
 	calculate_thumbnail_size(&w,&h,THUMB_MAX_DISPLAY_WIDTH,THUMB_MAX_DISPLAY_HEIGHT);
 
 	char buf[256];
-	strcpy(buf, upload_original_name(upload));
+	size_t upload_original_name_len = strlen(upload_original_name(upload));
+	if (upload_original_name_len+1 >= sizeof(buf)) {
+		size_t half = sizeof(buf)/2 - 2;
+		memcpy(buf, upload_original_name(upload), half);
+		memcpy(buf + half, upload_original_name(upload) + upload_original_name_len - half, half);
+	} else {
+		strcpy(buf, upload_original_name(upload));
+	}
+	// Double-ensure the buffer is terminated
+	buf[sizeof(buf)-1] = '\0';
+
 	abbreviate_filename_px(buf, w>100?w:100);
 
 	const char *mime = upload_mime_type(upload);
